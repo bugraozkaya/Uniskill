@@ -1,0 +1,16 @@
+# .gitignore dosyası içeriği
+
+# Python derleme dosyaları
+__pycache__/
+*.py[cod]
+
+# Sanal Ortam (Senin bilgisayarına özeldir, yüklenmez)
+venv/
+env/
+.env
+
+# Veritabanı (Sunucuda sıfırdan oluşmalı, yereldekini yükleme)
+db.sqlite3
+
+# Medya dosyaları (Test resimleri)
+media/

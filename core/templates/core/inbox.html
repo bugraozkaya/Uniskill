@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gelen Kutusu - UniSkill</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3><i class="fas fa-envelope text-primary me-2"></i>Gelen Kutusu</h3>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Dashboard'a Dön</a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="list-group list-group-flush">
+            {% for msg in messages %}
+            <div class="list-group-item p-4">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1 fw-bold text-primary">
+                        <i class="fas fa-user-circle me-1"></i> {{ msg.sender.first_name }} {{ msg.sender.last_name }}
+                    </h6>
+                    <small class="text-muted">{{ msg.created_at|timesince }} önce</small>
+                </div>
+                <p class="mb-1 mt-2 text-dark">{{ msg.body }}</p>
+                
+                <a href="{% url 'send_message' msg.sender.id %}" class="btn btn-sm btn-light text-muted mt-2">
+                    <i class="fas fa-reply"></i> Cevapla
+                </a>
+            </div>
+            {% empty %}
+            <div class="text-center py-5 text-muted">
+                <i class="far fa-envelope-open fa-3x mb-3"></i>
+                <p>Henüz gelen mesajınız yok.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

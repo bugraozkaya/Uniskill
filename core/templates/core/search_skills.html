@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ders Ara - UniSkill</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-dark bg-primary shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+                <i class="fas fa-arrow-left me-2"></i>Dashboard
+            </a>
+            <span class="navbar-text text-white">
+                UniSkill Pazar Yeri
+            </span>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <div class="row justify-content-center mb-5">
+            <div class="col-md-10">
+                <form method="get" class="card card-body shadow-sm border-0 p-2">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+                        
+                        <input type="text" name="q" class="form-control border-0 shadow-none" 
+                               placeholder="Ne öğrenmek istiyorsun? (Örn: Java, Gitar, İngilizce)..." 
+                               value="{{ request.GET.q|default:'' }}">
+                        
+                        <select name="rating" class="form-select border-0 bg-light" style="max-width: 200px; border-left: 1px solid #dee2e6 !important;">
+                            <option value="">Tüm Puanlar</option>
+                            <option value="4" {% if request.GET.rating == '4' %}selected{% endif %}>⭐⭐⭐⭐ 4+ Puan</option>
+                            <option value="3" {% if request.GET.rating == '3' %}selected{% endif %}>⭐⭐⭐ 3+ Puan</option>
+                            <option value="5" {% if request.GET.rating == '5' %}selected{% endif %}>⭐⭐⭐⭐⭐ Sadece 5</option>
+                        </select>
+        
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">Bul</button>
+                        
+                        {% if request.GET.q or request.GET.rating %}
+                            <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary border-0" title="Filtreleri Temizle">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            {% if skills %}
+                {% for item in skills %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0 transition-hover">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="badge bg-info text-dark">{{ item.skill.category.name }}</span>
+                                
+                                <div class="text-end">
+                                    <div class="text-muted small mb-1">
+                                        <i class="fas fa-user me-1"></i> {{ item.user.first_name }} {{ item.user.last_name }}
+                                    </div>
+                                    
+                                    {% if item.user.average_rating > 0 %}
+                                        <span class="badge bg-warning text-dark shadow-sm">
+                                            <i class="fas fa-star text-white"></i> {{ item.user.average_rating|floatformat:1 }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-light text-muted border">
+                                            <small>Yeni Eğitmen</small>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <h4 class="card-title fw-bold text-primary">{{ item.skill.name }}</h4>
+                            <p class="card-text text-muted small">
+                                {{ item.skill.description|default:"Bu ders için özel açıklama girilmemiş."|truncatechars:100 }}
+                            </p>
+                            
+                            <hr>
+                            
+                            <div class="d-grid gap-2">
+    {% if item.user.id != request.user.id %}
+        <a href="{% url 'send_message' item.user.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="far fa-comment-dots me-2"></i>Soru Sor
+        </a>
+    {% endif %}
+
+    <a href="{% url 'request_session' item.id %}" class="btn btn-primary fw-bold text-white">
+        <i class="fas fa-hand-pointer me-2"></i>Ders Talep Et
+    </a>
+</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12 text-center mt-5">
+                    <i class="fas fa-search-minus fa-4x text-muted mb-3 opacity-25"></i>
+                    <h3>Aradığınız kriterde ders bulunamadı.</h3>
+                    <p class="text-muted">Farklı bir kelime deneyin veya filtreleri değiştirin.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</body>
+</html>

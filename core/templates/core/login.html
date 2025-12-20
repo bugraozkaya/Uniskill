@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Giriş Yap - UniSkill</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Geri sayım sırasında ekranı hafif karartıp kilitlemek için stil */
+        .blocked-overlay {
+            pointer-events: none; /* Tıklamayı engelle */
+            opacity: 0.6;         /* Şeffaflaştır */
+        }
+    </style>
+</head>
+<body class="bg-light d-flex align-items-center justify-content-center" style="height: 100vh;">
+
+    <div class="card shadow-lg border-0" style="width: 400px;">
+        <div class="card-header bg-primary text-white text-center py-4">
+            <h3 class="mb-0 fw-bold"><i class="fas fa-handshake me-2"></i>UniSkill</h3>
+            <small>Yetenek Takas Platformu</small>
+        </div>
+        
+        <div class="card-body p-4 position-relative">
+            
+            {% if wait_time %}
+                <div id="countdown-alert" class="alert alert-danger text-center fw-bold shadow-sm">
+                    <i class="fas fa-clock fa-spin me-2"></i>
+                    <span id="timer">{{ wait_time }}</span> saniye sonra tekrar deneyebilirsiniz.
+                </div>
+            {% endif %}
+
+            {% if messages and not wait_time %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" id="loginForm" class="{% if wait_time %}blocked-overlay{% endif %}">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Kullanıcı Adı</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Şifre</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary fw-bold py-2">Giriş Yap</button>
+                    <a href="{% url 'register' %}" class="btn btn-outline-secondary">Hesabın yok mu? Kayıt Ol</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // EĞER BACKEND'DEN 'wait_time' GELDİYSE BU KOD ÇALIŞIR
+        {% if wait_time %}
+            let seconds = {{ wait_time }};
+            const timerElement = document.getElementById("timer");
+            const formElement = document.getElementById("loginForm");
+            const alertElement = document.getElementById("countdown-alert");
+
+            // Her 1 saniyede bir çalış
+            const countdown = setInterval(function() {
+                seconds--;
+                
+                // Ekranda 0'ın altını gösterme
+                if (seconds < 0) seconds = 0;
+                
+                timerElement.innerText = seconds;
+
+                if (seconds <= 0) {
+                    clearInterval(countdown);
+                    
+                    // KİLİT NOKTA: Hemen yenileme! 
+                    // Kullanıcıya "Açılıyor..." mesajı ver
+                    timerElement.innerText = "0 (Açılıyor...)";
+                    
+                    // Sunucunun süresinin kesin dolması için 1.5 saniye ekstra bekle
+                    setTimeout(function() {
+                        // location.reload() YERİNE bunu kullan:
+                        // Bu komut sayfayı "Temiz" bir şekilde (GET isteğiyle) yeniden açar
+                        window.location.href = window.location.pathname;
+                    }, 1500);
+                }
+            }, 1000);
+        {% endif %}
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

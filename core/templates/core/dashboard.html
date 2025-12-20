@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniSkill - Yetenek Takası</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}"><i class="fas fa-handshake me-2"></i>UniSkill</a>
+            
+            <div class="d-flex align-items-center gap-3">
+                <span class="navbar-text text-white d-none d-md-block small opacity-75">
+                    Sivas Bilim ve Teknoloji Üniversitesi
+                </span>
+
+                {% if user.is_authenticated %}
+                <a href="{% url 'inbox' %}" class="btn btn-light btn-sm shadow-sm me-2 text-primary fw-bold">
+    <i class="fas fa-envelope"></i> Mesajlar
+</a>
+                    <div class="d-flex align-items-center bg-primary-dark p-1 rounded">
+                        <span class="text-white me-2 small">
+                            Merhaba, <strong>{{ user.first_name|default:user.username }}</strong>
+                        </span>
+                        <a href="{% url 'logout' %}" class="btn btn-danger btn-sm shadow-sm">
+                            <i class="fas fa-sign-out-alt"></i> Çıkış
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-light btn-sm fw-bold shadow-sm">
+                        <i class="fas fa-sign-in-alt me-1"></i> Giriş Yap
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        {% if user.is_authenticated %}
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-user-circle fa-5x text-secondary"></i>
+                        </div>
+                        <h4 class="card-title">{{ user.username }}</h4>
+                        <p class="text-muted mb-1">{{ bolum|default:"Bölüm Belirtilmedi" }}</p>
+                        
+                        {% if user.status == 'active' %}
+                            <span class="badge bg-success rounded-pill px-3">Onaylı Hesap</span>
+                        {% elif user.status == 'pending' %}
+                            <span class="badge bg-warning text-dark rounded-pill px-3">Onay Bekliyor</span>
+                        {% else %}
+                            <span class="badge bg-danger rounded-pill px-3">Yasaklı</span>
+                        {% endif %}
+
+                        <div class="mt-4 pt-3 border-top text-start">
+                            <small class="text-muted d-block mb-1 text-center">Davet Kodun</small>
+                            <div class="bg-light border rounded p-2 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-primary font-monospace mx-auto fs-5">{{ user.username }}</span>
+                            </div>
+                            <small class="text-muted d-block mt-2 text-center" style="font-size: 0.75rem;">
+                                Arkadaşın bu kodla üye olup onaylandığında ikiniz de <strong class="text-success">+1 Saat</strong> kazanırsınız!
+                            </small>
+                        </div>
+                        </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0 bg-white mb-4">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="text-muted">Mevcut Zaman Bakiyen</h5>
+                                <h1 class="display-4 fw-bold text-primary">
+                                    {{ bakiye }} <span class="fs-4 text-muted">Saat</span>
+                                </h1>
+                            </div>
+                            <div class="text-end">
+                                <i class="fas fa-hourglass-half fa-4x text-primary opacity-25"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <a href="{% url 'search_skills' %}" class="btn btn-outline-primary w-100 p-3 h-100 shadow-sm transition-hover text-decoration-none">
+                            <i class="fas fa-search fa-2x mb-2"></i><br>Ders Ara
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'add_skill' %}" class="btn btn-outline-success w-100 p-3 h-100 shadow-sm transition-hover text-decoration-none">
+                            <i class="fas fa-plus-circle fa-2x mb-2"></i><br>Yetenek Ekle
+                        </a>
+                    </div>
+                    {% if user.is_superuser %}
+<div class="col-12 mt-3">
+    <a href="{% url 'admin_stats' %}" class="btn btn-dark w-100 p-3 shadow-sm">
+        <i class="fas fa-chart-line me-2"></i> Yönetici İstatistik Paneli
+    </a>
+</div>
+{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 bg-white mt-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="far fa-calendar-alt text-primary me-2"></i>Yaklaşan Ders Programım
+                </h5>
+            </div>
+            
+            <div class="card-body px-4 pb-4">
+                {% if my_sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ders</th>
+                                    <th>Rolüm</th>
+                                    <th>Kiminle</th>
+                                    <th>Tarih & Saat</th>
+                                    <th>Süre</th>
+                                    <th>Durum</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in my_sessions %}
+                                <tr>
+                                    <td class="fw-bold text-primary">{{ session.skill.name }}</td>
+                                    <td>
+                                        {% if session.student == user %}
+                                            <span class="badge bg-info text-dark">Öğrenciyim</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Hocayım</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if session.student == user %}
+                                            <i class="fas fa-chalkboard-teacher text-muted me-1"></i> {{ session.tutor.get_full_name|default:session.tutor.username }}
+                                        {% else %}
+                                            <i class="fas fa-user-graduate text-muted me-1"></i> {{ session.student.get_full_name|default:session.student.username }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ session.date|date:"d M Y, H:i" }}</td>
+                                    <td>{{ session.duration }} Saat</td>
+                                    <td><span class="badge bg-secondary bg-opacity-25 text-dark">Planlandı</span></td>
+                                    <td>
+                                        <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success" onclick="return confirm('Bu dersin tamamlandığını onaylıyor musunuz?')">
+                                            <i class="fas fa-check"></i> Bitir
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-light border text-center text-muted m-0">
+                        <i class="fas fa-calendar-times me-2"></i>Henüz planlanmış bir dersiniz yok.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 bg-white mt-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fas fa-history text-secondary me-2"></i>Geçmiş Dersler
+                </h5>
+            </div>
+            
+            <div class="card-body px-4 pb-4">
+                {% if past_sessions %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Ders</th>
+                                    <th>Eğitmen</th>
+                                    <th>Tarih</th>
+                                    <th>Durum</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in past_sessions %}
+                                <tr>
+                                    <td>{{ session.skill.name }}</td>
+                                    <td>{{ session.tutor.get_full_name|default:session.tutor.username }}</td>
+                                    <td>{{ session.date|date:"d M Y" }}</td>
+                                    <td><span class="badge bg-secondary">Tamamlandı</span></td>
+                                    <td>
+                                        {% if session.has_review %}
+                                            <span class="text-success fw-bold small">
+                                                <i class="fas fa-check-circle"></i> Değerlendirildi
+                                            </span>
+                                        {% elif session.student.id == user.id %}
+                                            <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
+                                                <i class="fas fa-star"></i> Puan Ver
+                                            </a>
+                                        {% else %}
+                                            <small class="text-muted">-</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-3">Henüz tamamlanmış bir dersiniz yok.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 bg-white mt-4 mb-5">
+            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark mb-0">Öğretebileceğim Dersler</h5>
+                <span class="badge bg-primary rounded-pill">{{ my_skills.count }} Adet</span>
+            </div>
+
+            <div class="card-body px-4 pb-4">
+                {% if my_skills %}
+                    <div class="list-group list-group-flush">
+                        {% for item in my_skills %}
+                        <div class="list-group-item border-0 px-0 py-3 d-flex justify-content-between align-items-center border-bottom">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light text-primary rounded p-3 me-3">
+                                    <i class="fas fa-chalkboard-teacher fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ item.skill.name }}</h6>
+                                    <small class="text-muted">{{ item.skill.category.name }}</small>
+                                    {% if item.skill.description %}
+                                        <br><small class="text-muted fst-italic" style="font-size: 0.8rem;">"{{ item.skill.description|truncatechars:50 }}"</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">Aktif İlan</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
+                        <p>Henüz bir yetenek eklemedin.</p>
+                        <a href="{% url 'add_skill' %}" class="btn btn-sm btn-outline-primary">Hemen Ekle</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% else %}
+        <div class="text-center mt-5 pt-5">
+            <h1 class="display-5 fw-bold text-dark">UniSkill'e Hoşgeldin</h1>
+            <p class="lead text-muted">Üniversite içi yetenek takas platformu.</p>
+            <div class="d-flex justify-content-center gap-3 mt-4">
+                <a href="{% url 'login' %}" class="btn btn-primary btn-lg px-5 shadow">Giriş Yap</a>
+                <a href="{% url 'register' %}" class="btn btn-outline-primary btn-lg px-5 shadow-sm">Kayıt Ol</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>
