@@ -18,37 +18,50 @@ from .models import Message
 from .forms import MesajFormu
 from django.contrib.auth.views import LoginView
 from django.core.cache import cache # Hafıza (RAM) işlemleri için
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from .models import Session, UserSkill
+from django.db import models  # <-- Bunu dosyanın en tepesine ekle!
 
 # Ana Sayfa (Dashboard)
 @login_required
 def dashboard(request):
-    if request.user.status == 'pending':
-        return render(request, 'core/pending.html')
-
-    # 1. Benim yeteneklerim
-    my_skills = UserSkill.objects.filter(user=request.user)
+    now = timezone.now()
     
-    # 2. GELECEK DERSLER (Scheduled)
+    # 1. Kullanıcının ÖĞRENCİ veya HOCA olduğu GELECEK dersler
+    # (Hem onaylanmışları hem de onay bekleyenleri getiriyoruz)
     my_sessions = Session.objects.filter(
-        Q(student=request.user) | Q(tutor=request.user),
-        status='scheduled'
-    ).order_by('date')
+        # Ya öğrenciyim ya hocayım
+        (models.Q(student=request.user) | models.Q(tutor=request.user)),
+        # Ders tarihi geçmemiş (Gelecek)
+        date__gte=now
+    ).exclude(
+        status='cancelled'  # İptal edilenleri gösterme
+    ).order_by('date')      # Tarihe göre sırala (en yakın en üstte)
 
-    # 3. GEÇMİŞ / TAMAMLANAN DERSLER (EKSİK OLAN KISIM BURASIYDI)
+    # 2. Geçmiş Dersler (Tarihi geçmiş veya tamamlanmış)
     past_sessions = Session.objects.filter(
-        Q(student=request.user) | Q(tutor=request.user),
-        status='completed'
+        (models.Q(student=request.user) | models.Q(tutor=request.user)),
+        date__lt=now # Tarihi eskide kalmış
     ).order_by('-date')
 
+    # 3. Öğretebileceğim yetenekler listesi
+    my_skills = UserSkill.objects.filter(user=request.user)
+
+    # Kullanıcının bakiyesini al (Profile'dan)
+    # (Hata almamak için güvenli erişim)
+    try:
+        balance = request.user.profile.balance
+    except:
+        balance = 0
+
     context = {
-        'ad': request.user.first_name,
-        'soyad': request.user.last_name,
-        'bakiye': request.user.balance,
-        'status': request.user.get_status_display(),
-        'bolum': request.user.department,
-        'my_skills': my_skills,
         'my_sessions': my_sessions,
-        'past_sessions': past_sessions,  # <-- HTML'e bu veriyi göndermiyorduk
+        'past_sessions': past_sessions,
+        'my_skills': my_skills,
+        'bakiye': balance,
+        'bolum': 'Bilgisayar Mühendisliği' # Burayı dinamik yapabilirsin
     }
     
     return render(request, 'core/dashboard.html', context)
@@ -129,48 +142,41 @@ def search_skills(request):
     return render(request, 'core/search_skills.html', {'skills': skills})
 
 
+# core/views.py içindeki request_session fonksiyonunun EN GÜNCEL HALİ:
+
+# core/views.py içindeki request_session fonksiyonu
+
 @login_required
 def request_session(request, skill_id):
-    # 1. Hangi yetenek isteniyor onu bul (UserSkill tablosundan)
-    target_skill = get_object_or_404(UserSkill, id=skill_id)
-    tutor = target_skill.user # Dersi verecek hoca
-    student = request.user    # Dersi alacak öğrenci
-
+    # Bu 'skill' değişkeni aslında bir İLAN (UserSkill)
+    skill = get_object_or_404(UserSkill, id=skill_id)
+    
     if request.method == 'POST':
-        form = DersTalepFormu(request.POST)
-        if form.is_valid():
-            session = form.save(commit=False)
-            session.student = student
-            session.tutor = tutor
-            session.skill = target_skill.skill
+        date_str = request.POST.get('date')
+        duration = request.POST.get('duration')
+
+        from django.utils.dateparse import parse_datetime
+        date_obj = parse_datetime(date_str)
+
+        new_session = Session(
+            student=request.user,
+            tutor=skill.user,
             
-            # --- KURAL 1: Kendi kendine ders alamazsın ---
-            if student == tutor:
-                messages.error(request, "Kendinden ders alamazsın!")
-                return redirect('search_skills')
-
-            # --- KURAL 2: Bakiye Yetersizse ---
-            if student.balance < session.duration:
-                messages.error(request, f"Yetersiz Bakiye! {session.duration} saat için kredin yok.")
-                return render(request, 'core/request_session.html', {'form': form, 'target_skill': target_skill})
-
-            # --- KURAL 3: TRANSFER İŞLEMİ (TRANSACTION) ---
-            # Öğrenciden düş, hocaya ekle
-            student.balance -= session.duration
-            tutor.balance += session.duration
+            # --- HATAYI ÇÖZEN SATIR BURASI ---
+            # skill=skill YERİNE skill=skill.skill YAZIYORUZ
+            skill=skill.skill, 
+            # ---------------------------------
             
-            # Veritabanına kaydet (Atomik işlem gibi)
-            student.save()
-            tutor.save()
-            session.save()
-            
-            messages.success(request, f"Ders başarıyla ayarlandı! {session.duration} saat bakiyenizden düştü.")
-            return redirect('dashboard')
-    else:
-        form = DersTalepFormu()
-
-    return render(request, 'core/request_session.html', {'form': form, 'target_skill': target_skill})
-
+            date=date_obj,
+            duration=duration,
+            status='pending'
+        )
+        new_session.save()
+        
+        messages.success(request, "Ders talebiniz alındı! Admin onayından sonra dersiniz başlayacaktır.")
+        return redirect('dashboard')
+    
+    return render(request, 'core/session_request.html', {'skill': skill})
 
 @login_required
 def complete_session(request, session_id):

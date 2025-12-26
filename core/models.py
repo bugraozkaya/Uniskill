@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 
 # 1. USER MANAGEMENT (Kullanıcı ve Güvenlik)
 class User(AbstractUser):
@@ -64,19 +65,19 @@ class UserSkill(models.Model):
 
 # 4. SESSION / TRANSACTION (Zaman Bankası İşlemleri)
 class Session(models.Model):
-    STATUS_CHOICES = (
-        ('scheduled', 'Scheduled (Planlandı)'),
-        ('completed', 'Completed (Tamamlandı)'),
-        ('cancelled', 'Cancelled (İptal)'),
-    )
-    
+    STATUS_CHOICES = [
+        ('pending', 'Admin Onayı Bekliyor'), # İsimlendirmeyi güncelledik
+        ('approved', 'Onaylandı / Aktif'),
+        ('completed', 'Tamamlandı'),
+        ('cancelled', 'İptal Edildi'),
+    ]
 
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learning_sessions')
     tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='teaching_sessions')
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
     date = models.DateTimeField()
     duration = models.PositiveIntegerField(help_text="Saat cinsinden süre")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def clean(self):
         # DÜZELTME: Eğer form validasyonu sırasındaysak ve öğrenci henüz atanmamışsa kontrolü atla
@@ -116,3 +117,17 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.sender} -> {self.recipient}"
+    
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    balance = models.IntegerField(default=3)  # Varsayılan 3 saat
+    status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'Onay Bekliyor'),
+        ('active', 'Onaylı / Aktif'),
+        ('suspended', 'Askıya Alındı')
+    ])
+    referral_code = models.CharField(max_length=10, blank=True, null=True, unique=True)
+    used_referral = models.CharField(max_length=10, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} Profili"

@@ -1,23 +1,40 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from .models import User, Category, Skill, UserSkill, Session, Review
+from .models import Profile, Category, Skill, UserSkill, Session, Review
 
-# Kullanıcı Paneli Özelleştirmesi (Gatekeeper Görünümü)
-class CustomUserAdmin(UserAdmin):
-    # Listede görünecek sütunlar
-    list_display = ('username', 'email', 'department', 'balance', 'status')
-    # Yan tarafta filtreleme kutusu (Hoca buna bayılır)
-    list_filter = ('status', 'department', 'is_staff')
-    
-    # Detay sayfasına yeni alanlarımızı ekleyelim
-    fieldsets = UserAdmin.fieldsets + (
-        ('UniSkill Bilgileri', {'fields': ('phone_number', 'department', 'balance', 'status', 'invited_by')}),
-    )
+# --- 1. PROFİL YÖNETİMİ (Bakiyeleri Buradan Göreceksin) ---
+class ProfileAdmin(admin.ModelAdmin):
+    # Listede Kullanıcı Adı, Bakiye ve Durum yan yana görünsün
+    list_display = ('user', 'balance', 'status')
+    # Kullanıcı adına göre arama yapabilesin
+    search_fields = ('user__username', 'user__email')
+    # Duruma göre filtreleme yapabilesin
+    list_filter = ('status',)
 
-# Diğer tabloları basitçe kaydedelim
-admin.site.register(User, CustomUserAdmin)
+admin.site.register(Profile, ProfileAdmin)
+
+
+# --- 2. DİĞER MODELLER ---
+
 admin.site.register(Category)
 admin.site.register(Skill)
-admin.site.register(UserSkill)
-admin.site.register(Session)
+
+class UserSkillAdmin(admin.ModelAdmin):
+    list_display = ('user', 'skill')
+    search_fields = ('user__username', 'skill__name')
+
+admin.site.register(UserSkill, UserSkillAdmin)
+
 admin.site.register(Review)
+
+
+# --- 3. DERS ONAY SİSTEMİ ---
+@admin.action(description='Seçili dersleri ONAYLA (Admin Onayı)')
+def approve_sessions(modeladmin, request, queryset):
+    queryset.update(status='approved')
+
+class SessionAdmin(admin.ModelAdmin):
+    list_display = ('student', 'tutor', 'skill', 'date', 'status')
+    list_filter = ('status', 'date')
+    actions = [approve_sessions]
+
+admin.site.register(Session, SessionAdmin)

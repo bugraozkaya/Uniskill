@@ -135,34 +135,54 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for session in my_sessions %}
-                                <tr>
-                                    <td class="fw-bold text-primary">{{ session.skill.name }}</td>
-                                    <td>
-                                        {% if session.student == user %}
-                                            <span class="badge bg-info text-dark">Öğrenciyim</span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Hocayım</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if session.student == user %}
-                                            <i class="fas fa-chalkboard-teacher text-muted me-1"></i> {{ session.tutor.get_full_name|default:session.tutor.username }}
-                                        {% else %}
-                                            <i class="fas fa-user-graduate text-muted me-1"></i> {{ session.student.get_full_name|default:session.student.username }}
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ session.date|date:"d M Y, H:i" }}</td>
-                                    <td>{{ session.duration }} Saat</td>
-                                    <td><span class="badge bg-secondary bg-opacity-25 text-dark">Planlandı</span></td>
-                                    <td>
-                                        <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success" onclick="return confirm('Bu dersin tamamlandığını onaylıyor musunuz?')">
-                                            <i class="fas fa-check"></i> Bitir
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
+                            {% for session in my_sessions %}
+                            <tr>
+                                <td class="fw-bold text-primary">{{ session.skill.name }}</td>
+
+                                <td>
+                                    {% if session.student == user %}
+                                        <span class="badge bg-info text-dark">Öğrenciyim</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Hocayım</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if session.student == user %}
+                                        <i class="fas fa-chalkboard-teacher text-muted me-1"></i> 
+                                        {{ session.tutor.get_full_name|default:session.tutor.username }}
+                                    {% else %}
+                                        <i class="fas fa-user-graduate text-muted me-1"></i> 
+                                        {{ session.student.get_full_name|default:session.student.username }}
+                                    {% endif %}
+                                </td>
+
+                                <td>{{ session.date|date:"d M Y, H:i" }}</td>
+
+                                <td>{{ session.duration }} Saat</td>
+
+                                <td>
+                                    {% if session.status == 'pending' %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-clock me-1"></i>Onay Bekliyor
+                                        </span>
+                                    {% elif session.status == 'approved' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Aktif / Onaylı
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ session.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success" onclick="return confirm('Bu dersin tamamlandığını onaylıyor musunuz?')">
+                                        <i class="fas fa-check"></i> Bitir
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
                         </table>
                     </div>
                 {% else %}
