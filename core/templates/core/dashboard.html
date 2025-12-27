@@ -267,16 +267,34 @@
                                     <td>{{ session.skill.name }}</td>
                                     <td>{{ session.tutor.get_full_name|default:session.tutor.username }}</td>
                                     <td>{{ session.date|date:"d M Y" }}</td>
-                                    <td><span class="badge bg-secondary">Tamamlandı</span></td>
+                                    
                                     <td>
-                                        {% if session.has_review %}
-                                            <span class="text-success fw-bold small">
-                                                <i class="fas fa-check-circle"></i> Değerlendirildi
+                                        {% if session.status == 'completed' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Tamamlandı
                                             </span>
-                                        {% elif session.student.id == user.id %}
-                                            <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
-                                                <i class="fas fa-star"></i> Puan Ver
-                                            </a>
+                                        {% elif session.status == 'cancelled' %}
+                                            <span class="badge bg-danger">İptal Edildi</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary" title="Süresi doldu fakat işlem yapılmadı">
+                                                <i class="fas fa-exclamation-circle me-1"></i>Tamamlanmadı
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if session.status == 'completed' %}
+                                            {% if session.has_review %}
+                                                <span class="text-success fw-bold small">
+                                                    <i class="fas fa-check-circle"></i> Değerlendirildi
+                                                </span>
+                                            {% elif session.student.id == user.id %}
+                                                <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
+                                                    <i class="fas fa-star"></i> Puan Ver
+                                                </a>
+                                            {% else %}
+                                                <small class="text-muted">-</small>
+                                            {% endif %}
                                         {% else %}
                                             <small class="text-muted">-</small>
                                         {% endif %}

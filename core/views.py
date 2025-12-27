@@ -32,49 +32,58 @@ from .models import (
 
 
 # Ana Sayfa (Dashboard)
+# core/views.py içinde dashboard fonksiyonunun YENİ HALİ
+
 @login_required
 def dashboard(request):
-    # --- BU 2 SATIRI GEÇİCİ OLARAK EKLE (ZORLA DÜZELTME) ---
-    # Sayfa her yüklendiğinde BÜTÜN dersleri 'online' yapacak.
-    UserSkill.objects.all().update(location='online')
-    print("📢 DİKKAT: Veritabanı kod içinden güncellendi!")
+    # --- (İsteğe Bağlı) ZORLA DÜZELTME KODU ---
+    # Eğer "Online" butonu hala gelmiyorsa bu satırı aktif bırak.
+    # Sorun çözüldüyse bu satırı silebilirsin.
+    UserSkill.objects.all().update(location='online') 
     # -------------------------------------------------------
-    profile, created = Profile.objects.get_or_create(user=request.user)
-    now = timezone.now()
-    
-    # 1. Kullanıcının ÖĞRENCİ veya HOCA olduğu GELECEK dersler
-    # (Hem onaylanmışları hem de onay bekleyenleri getiriyoruz)
-    my_sessions = Session.objects.filter(
-        # Ya öğrenciyim ya hocayım
-        (models.Q(student=request.user) | models.Q(tutor=request.user)),
-        # Ders tarihi geçmemiş (Gelecek)
-        date__gte=now
-    ).exclude(
-        status='cancelled'  # İptal edilenleri gösterme
-    ).order_by('date')      # Tarihe göre sırala (en yakın en üstte)
 
-    # 2. Geçmiş Dersler (Tarihi geçmiş veya tamamlanmış)
-    past_sessions = Session.objects.filter(
-        (models.Q(student=request.user) | models.Q(tutor=request.user)),
-        date__lt=now # Tarihi eskide kalmış
-    ).order_by('-date')
+    profile, created = Profile.objects.get_or_create(user=request.user)
+    
+    # 1. Kullanıcının dahil olduğu BÜTÜN dersleri çekiyoruz (Tarihe göre sıralı)
+    # (Burada now/zaman filtresi yapmıyoruz, hepsini alıp aşağıda ayıklayacağız)
+    all_sessions = Session.objects.filter(
+        models.Q(student=request.user) | models.Q(tutor=request.user)
+    ).order_by('date')
+
+    # 2. Dersleri 'Aktif' ve 'Geçmiş' diye Python ile ayırıyoruz
+    my_sessions = []   # Yaklaşan veya Şu An Devam Edenler (2 saatlik ders bitmediyse buraya)
+    past_sessions = [] # Süresi Tamamen Bitmiş Olanlar
+
+    for session in all_sessions:
+        if session.status == 'cancelled':
+            # İptal edilenleri direkt geçmişe atalım
+            past_sessions.append(session)
+        elif session.is_expired:
+            # Modeldeki is_expired fonksiyonu "Süre bitti mi?" diye bakar.
+            # Bitti ise -> Geçmiş Listesine
+            past_sessions.append(session)
+        else:
+            # Süresi dolmamışsa (veya şu an işleniyorsa) -> Aktif Listesine
+            my_sessions.append(session)
+    
+    # Listeyi ters çevirelim ki geçmiş derslerde en son biten en üstte dursun
+    past_sessions.reverse() 
 
     # 3. Öğretebileceğim yetenekler listesi
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # Kullanıcının bakiyesini al (Profile'dan)
-    # (Hata almamak için güvenli erişim)
+    # Bakiye Hesaplama (Güvenli Erişim)
     try:
         balance = request.user.profile.balance
     except:
         balance = 0
 
     context = {
-        'my_sessions': my_sessions,
-        'past_sessions': past_sessions,
+        'my_sessions': my_sessions,     # Artık akıllı filtrelenmiş liste
+        'past_sessions': past_sessions, # Sadece süresi bitenler
         'my_skills': my_skills,
         'bakiye': balance,
-        'bolum': 'Bilgisayar Mühendisliği' # Burayı dinamik yapabilirsin
+        'bolum': 'Bilgisayar Mühendisliği' 
     }
     
     return render(request, 'core/dashboard.html', context)
