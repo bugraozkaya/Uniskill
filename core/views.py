@@ -324,10 +324,20 @@ from django.contrib.auth.views import LoginView
 from django.core.cache import cache
 from django.contrib import messages
 from django.shortcuts import render
+from django.contrib.auth.views import LoginView
+from django.contrib import messages
+
+# core/views.py
+
+from django.contrib.auth.views import LoginView
+from django.contrib import messages
+from django.core.cache import cache
+import time
 
 class CustomLoginView(LoginView):
     template_name = 'core/login.html'
 
+    # --- YARDIMCI FONKSİYON: IP ADRESİNİ BUL ---
     def get_client_ip(self, request):
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
@@ -336,45 +346,48 @@ class CustomLoginView(LoginView):
             ip = request.META.get('REMOTE_ADDR')
         return ip
 
-    def dispatch(self, request, *args, **kwargs):
-        # 1. BLOK KONTROLÜ (Sayfa açılırken)
+    # --- 1. GET: SAYFA YÜKLENİRKEN ENGEL KONTROLÜ ---
+    def get(self, request, *args, **kwargs):
         ip = self.get_client_ip(request)
-        block_expiry = cache.get(f'blocked_{ip}') # Artık burada "Bitiş Zamanı" (timestamp) var
+        expiry_time = cache.get(f'blocked_{ip}')
         
-        if block_expiry:
-            # Kalan süreyi hesapla
-            remaining = int(block_expiry - time.time())
-            
+        if expiry_time:
+            remaining = int(expiry_time - time.time())
             if remaining > 0:
-                # Kullanıcıya kalan süreyi gönderiyoruz (wait_time)
-                return render(request, self.template_name, {
-                    'form': self.get_form(),
-                    'wait_time': remaining  # <-- HTML'e giden saniye bilgisi
-                })
-            
-        return super().dispatch(request, *args, **kwargs)
+                context = self.get_context_data()
+                context['wait_time'] = remaining
+                messages.error(request, f"⛔ Çok fazla deneme yaptınız. {remaining} saniye bekleyin.")
+                return self.render_to_response(context)
+        
+        return super().get(request, *args, **kwargs)
 
+    # --- 2. POST: FORM GÖNDERİLİNCE ---
+    def post(self, request, *args, **kwargs):
+        ip = self.get_client_ip(request)
+        
+        # Eğer IP zaten engelliyse işlemi reddet
+        if cache.get(f'blocked_{ip}'):
+            return self.render_to_response(self.get_context_data())
+
+        return super().post(request, *args, **kwargs)
+
+    # --- 3. BAŞARISIZ GİRİŞ (ŞİFRE YANLIŞSA) ---
     def form_invalid(self, form):
         ip = self.get_client_ip(self.request)
-        
-        # DİKKAT: Anahtar ismini değiştirdik (v2 yaptık). 
-        # Bu sayede eski hafıza silinmiş gibi tertemiz başlayacak.
-        fail_key = f'login_fail_v2_{ip}' 
+        fail_key = f'login_fail_v2_{ip}'
         
         current_count = cache.get(fail_key, 0)
         new_count = current_count + 1
         
-        # --- AJAN KODU: Terminale Bak ---
         print(f"👀 [DEBUG] IP: {ip} | Yeni Sayaç: {new_count}")
-        # -------------------------------
 
-        cache.set(fail_key, new_count, 60) 
+        cache.set(fail_key, new_count, 60) # Sayaç 60 saniye hafızada kalsın
         
         remaining = 3 - new_count
         context = self.get_context_data(form=form)
         
         if new_count >= 3:
-            # LİMİT AŞILDI
+            # LİMİT AŞILDI (30 Saniye Ban)
             expiry_time = time.time() + 30
             cache.set(f'blocked_{ip}', expiry_time, 30)
             context['wait_time'] = 30 
@@ -385,9 +398,57 @@ class CustomLoginView(LoginView):
             
         return self.render_to_response(context)
 
+    # --- 4. BAŞARILI GİRİŞ (ŞİFRE DOĞRUYSA) ---
     def form_valid(self, form):
+        user = form.get_user()
         ip = self.get_client_ip(self.request)
-        # Buradaki anahtarı da v2 yapıyoruz ki başarılı girince sıfırlansın
+
+        # A) ADMIN ONAYI KONTROLÜ
+        if not hasattr(user, 'profile') or user.profile.status != 'active':
+            messages.error(self.request, "Hesabınız henüz Admin tarafından onaylanmadı. Lütfen bekleyiniz.")
+            # Şifre doğru olsa bile girişi engelle (Sayaç artmasın ama giriş de yapmasın)
+            return self.render_to_response(self.get_context_data(form=form))
+
+        # B) HER ŞEY TAMAMSA SAYAÇLARI SIFIRLA VE GİRİŞ YAP
         cache.delete(f'login_fail_v2_{ip}') 
         cache.delete(f'blocked_{ip}')
         return super().form_valid(form)
+    
+@login_required
+def approve_session_tutor(request, session_id):
+    # Sadece o dersin HOCASI onaylayabilir
+    session = get_object_or_404(Session, id=session_id, tutor=request.user)
+    
+    if session.status == 'pending_tutor':
+        session.status = 'approved' # Son onay verildi!
+        session.save()
+        messages.success(request, "Dersi onayladınız! Ders artık aktif.")
+    
+    return redirect('dashboard')
+
+@login_required
+def reject_session_tutor(request, session_id):
+    # Sadece o dersin HOCASI reddedebilir
+    session = get_object_or_404(Session, id=session_id, tutor=request.user)
+    
+    if session.status == 'pending_tutor':
+        session.status = 'cancelled'
+        session.save()
+        messages.warning(request, "Ders talebini reddettiniz.")
+    
+    return redirect('dashboard')
+# core/views.py dosyasının EN ALTI
+
+@login_required
+def cancel_session(request, session_id):
+    session = get_object_or_404(Session, id=session_id)
+    
+    # Sadece dersin sahibi (öğrenci) veya hocası iptal edebilir
+    if request.user == session.student or request.user == session.tutor:
+        # Ders zaten bitmiş veya iptal edilmişse işlem yapma
+        if session.status not in ['completed', 'cancelled']:
+            session.status = 'cancelled'
+            session.save()
+            messages.info(request, "Ders iptal edildi.")
+            
+    return redirect('dashboard')

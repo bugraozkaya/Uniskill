@@ -1,14 +1,31 @@
 from django.contrib import admin
 from .models import Profile, Category, Skill, UserSkill, Session, Review
 
-# --- 1. PROFİL YÖNETİMİ (Bakiyeleri Buradan Göreceksin) ---
+# --- 1. PROFIL YÖNETİMİ (GÜNCELLENDİ) ---
+
+# Toplu Onaylama Fonksiyonu (Action)
+@admin.action(description='Seçili Profilleri ONAYLA (Aktif Yap)')
+def approve_profiles(modeladmin, request, queryset):
+    queryset.update(status='active')
+    modeladmin.message_user(request, "Seçilen profiller başarıyla onaylandı/aktif edildi.")
+
+@admin.action(description='Seçili Profilleri ASKIYA AL')
+def suspend_profiles(modeladmin, request, queryset):
+    queryset.update(status='suspended')
+
 class ProfileAdmin(admin.ModelAdmin):
-    # Listede Kullanıcı Adı, Bakiye ve Durum yan yana görünsün
+    # Listede görünecek sütunlar
     list_display = ('user', 'balance', 'status')
-    # Kullanıcı adına göre arama yapabilesin
+    
+    # *** İŞTE SİHİRLİ SATIR BURASI ***
+    # Bu satır sayesinde listedeyken durumu değiştirebileceksin:
+    list_editable = ('status',) 
+    
     search_fields = ('user__username', 'user__email')
-    # Duruma göre filtreleme yapabilesin
     list_filter = ('status',)
+    
+    # Toplu işlem butonlarını ekle
+    actions = [approve_profiles, suspend_profiles]
 
 admin.site.register(Profile, ProfileAdmin)
 
@@ -28,9 +45,9 @@ admin.site.register(Review)
 
 
 # --- 3. DERS ONAY SİSTEMİ ---
-@admin.action(description='Seçili dersleri ONAYLA (Admin Onayı)')
+@admin.action(description='Seçili dersleri HOCAYA GÖNDER (Pending Tutor)')
 def approve_sessions(modeladmin, request, queryset):
-    queryset.update(status='approved')
+    queryset.update(status='pending_tutor')
 
 class SessionAdmin(admin.ModelAdmin):
     list_display = ('student', 'tutor', 'skill', 'date', 'status')
