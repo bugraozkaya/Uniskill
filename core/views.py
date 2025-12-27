@@ -9,11 +9,14 @@ from django.utils import timezone
 from django.core.cache import cache
 from django.utils.dateparse import parse_datetime
 from .forms import UserUpdateForm, ProfileUpdateForm
+from django.contrib.auth import get_user_model
 
+from .forms import CustomUserCreationForm, UserUpdateForm, ProfileUpdateForm
+
+User = get_user_model()
 # --- FORMLAR ---
 from .forms import (
-    OgrenciKayitFormu, 
-    UserSkillForm, 
+    CustomUserCreationForm, 
     DersTalepFormu, 
     DegerlendirmeFormu, 
     MesajFormu
@@ -85,27 +88,18 @@ def dashboard(request):
 
 # core/views.py
 
+from .forms import CustomUserCreationForm # Sadece bunu kullanacağız
+
 def register(request):
     if request.method == 'POST':
-        form = OgrenciKayitFormu(request.POST)
+        # SADECE CustomUserCreationForm kullan, diğerini sil!
+        form = CustomUserCreationForm(request.POST) 
         if form.is_valid():
-            # 1. Create the new user
             user = form.save()
-            
-            # 2. Check if a referral code was entered
-            referral_code = form.cleaned_data.get('referral_code')
-            
-            if referral_code:
-                # CRITICAL STEP: Save the code to the user's profile
-                # This ensures the admin can see it later during approval
-                user.profile.used_referral = referral_code
-                user.profile.save()
-            
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Account created for {username}! Please wait for admin approval.')
+            messages.success(request, 'Hesabınız oluşturuldu! Onay bekleniyor.')
             return redirect('login')
     else:
-        form = OgrenciKayitFormu()
+        form = CustomUserCreationForm()
     return render(request, 'core/register.html', {'form': form})
     
 # ÇIKIŞ YAPMA FONKSİYONU

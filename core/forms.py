@@ -1,82 +1,45 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES  
-from django import forms
-from django.contrib.auth.models import User
-from .models import Profile
-from django import forms
-# --- 1. KAYIT FORMU ---
+from django.contrib.auth import get_user_model
+from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES, Profile
+
+User = get_user_model()
+
+# --- 1. KAYIT FORMLARI ---
+# views.py hem 'OgrenciKayitFormu' hem de 'CustomUserCreationForm' isimlerini aradığı için ikisini de tanımlıyoruz
 class OgrenciKayitFormu(UserCreationForm):
     department = forms.CharField(label="Bölüm", widget=forms.TextInput(attrs={'class': 'form-control'}))
     phone_number = forms.CharField(label="Telefon Numarası", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    
-    referral_code = forms.CharField(
-        label="Davet Kodu (Opsiyonel)", 
-        required=False, 
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Örn: burak'})
-    )
+    referral_code = forms.CharField(label="Davet Kodu", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
-    class Meta:
+    class Meta(UserCreationForm.Meta):
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'department', 'phone_number']
+        fields = ("username", "first_name", "last_name", "email", "department", "phone_number", "referral_code")
 
-    def clean_referral_code(self):
-        code = self.cleaned_data.get('referral_code')
-        if code:
-            if not User.objects.filter(username=code).exists():
-                raise forms.ValidationError("Böyle bir kullanıcı bulunamadı!")
-            return code
-        return None
+class CustomUserCreationForm(OgrenciKayitFormu):
+    """views.py içerisinde bu isimle de çağrıldığı için hata almamak adına ekledik."""
+    pass
 
-# --- 2. YETENEK EKLEME FORMU (DÜZELTİLDİ) ---
+# --- 2. YETENEK EKLEME FORMU ---
 class UserSkillForm(forms.ModelForm):
-    skill_name = forms.CharField(
-        label="Yetenek Adı",
-        max_length=100,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Örn: Python, Gitar...'})
-    )
-    
-    category = forms.ChoiceField(
-        label="Kategori",
-        choices=CATEGORY_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-
-    description = forms.CharField(
-        label="Ders Hakkında Açıklama",
-        required=False, 
-        widget=forms.Textarea(attrs={
-            'class': 'form-control', 
-            'rows': 4, 
-            'placeholder': 'Örn: Başlangıç seviyesinden alıp ileri seviyeye kadar öğretiyorum.'
-        })
-    )
+    skill_name = forms.CharField(label="Yetenek Adı", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    category = forms.ChoiceField(label="Kategori", choices=CATEGORY_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
 
     class Meta:
         model = UserSkill
-        fields = ['certificate', 'location', 'description'] 
+        fields = ['certificate', 'location', 'description']
         widgets = {
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'location': forms.Select(attrs={'class': 'form-select'}),
             'certificate': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
-    # *** İŞTE BU METOD SİLİNDİĞİ İÇİN HATA ALIYORDUN ***
     def save(self, commit=True):
         instance = super().save(commit=False)
-        
-        # Formdan gelen yetenek ismini ve kategoriyi al
         input_name = self.cleaned_data['skill_name'].strip().title()
         input_category = self.cleaned_data['category']
-
-        # Yeteneği bul veya oluştur
-        skill_obj, created = Skill.objects.get_or_create(
-            name=input_name,
-            defaults={'category': input_category}
-        )
-
-        # Oluşan yeteneği kayda bağla
+        skill_obj, _ = Skill.objects.get_or_create(name=input_name, defaults={'category': input_category})
         instance.skill = skill_obj
-        
         if commit:
             instance.save()
         return instance
@@ -91,36 +54,16 @@ class DersTalepFormu(forms.ModelForm):
             'duration': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5}),
         }
 
-# --- 4. DEĞERLENDİRME FORMU ---
-class DegerlendirmeFormu(forms.ModelForm):
-    class Meta:
-        model = Review
-        fields = ['rating', 'comment']
-        widgets = {
-            'rating': forms.Select(attrs={
-                'class': 'form-select', 
-                'style': 'height: 50px;'
-            }),
-            'comment': forms.Textarea(attrs={
-                'class': 'form-control', 
-                'placeholder': 'Ders ve eğitmen hakkındaki düşüncelerin...',
-                'rows': 4
-            }),
-        }
-        labels = {
-            'rating': 'Puan',
-            'comment': 'Yorum'
-        }
-
-# --- 5. MESAJ FORMU ---
+# --- 4. MESAJ FORMU ---
 class MesajFormu(forms.ModelForm):
     class Meta:
         model = Message
         fields = ['body']
         widgets = {
-            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Mesajınızı buraya yazın...'})
         }
 
+# --- 5. GÜNCELLEME VE DEĞERLENDİRME FORMLARI ---
 class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
@@ -130,3 +73,12 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ['department']
+
+class DegerlendirmeFormu(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['rating', 'comment']
+        widgets = {
+            'rating': forms.Select(attrs={'class': 'form-select'}),
+            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+        }

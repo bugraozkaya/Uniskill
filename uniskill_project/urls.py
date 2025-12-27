@@ -3,6 +3,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from core import views
+
 # View fonksiyonlarını çağırıyoruz
 from core.views import (
     dashboard, register, logout_view, add_skill, 
