@@ -28,19 +28,21 @@
                         <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
                         
                         <input type="text" name="q" class="form-control border-0 shadow-none" 
-                               placeholder="Ne öğrenmek istiyorsun? (Örn: Java, Gitar, İngilizce)..." 
+                               placeholder="Ne öğrenmek istiyorsun? (Örn: Python, Gitar)..." 
                                value="{{ request.GET.q|default:'' }}">
                         
-                        <select name="rating" class="form-select border-0 bg-light" style="max-width: 200px; border-left: 1px solid #dee2e6 !important;">
-                            <option value="">Tüm Puanlar</option>
-                            <option value="4" {% if request.GET.rating == '4' %}selected{% endif %}>⭐⭐⭐⭐ 4+ Puan</option>
-                            <option value="3" {% if request.GET.rating == '3' %}selected{% endif %}>⭐⭐⭐ 3+ Puan</option>
-                            <option value="5" {% if request.GET.rating == '5' %}selected{% endif %}>⭐⭐⭐⭐⭐ Sadece 5</option>
+                        <select name="category" class="form-select border-0 bg-light" style="max-width: 250px; border-left: 1px solid #dee2e6 !important;">
+                            <option value="all">Tüm Kategoriler</option>
+                            {% for code, name in categories %}
+                                <option value="{{ code }}" {% if request.GET.category == code %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                            {% endfor %}
                         </select>
         
                         <button type="submit" class="btn btn-primary px-4 fw-bold">Bul</button>
                         
-                        {% if request.GET.q or request.GET.rating %}
+                        {% if request.GET.q or request.GET.category %}
                             <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary border-0" title="Filtreleri Temizle">
                                 <i class="fas fa-times"></i>
                             </a>
@@ -57,7 +59,7 @@
                     <div class="card h-100 shadow-sm border-0 transition-hover">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                <span class="badge bg-info text-dark">{{ item.skill.category.name }}</span>
+                                <span class="badge bg-info text-dark">{{ item.skill.get_category_display }}</span>
                                 
                                 <div class="text-end">
                                     <div class="text-muted small mb-1">
@@ -77,28 +79,15 @@
                             </div>
                             
                             <h4 class="card-title fw-bold text-primary">{{ item.skill.name }}</h4>
+                            
                             <p class="card-text text-muted small">
-                                {{ item.skill.description|default:"Bu ders için özel açıklama girilmemiş."|truncatechars:100 }}
+                                {{ item.description|default:"Bu hoca henüz bir açıklama girmemiş."|truncatechars:100 }}
                             </p>
                             
                             <div class="mb-2">
-                                {% if item.location == 'online' %}
-                                    <span class="badge bg-light text-primary border border-primary">
-                                        <i class="fas fa-video me-1"></i>Online
-                                    </span>
-                                {% elif item.location == 'tutor_home' %}
-                                    <span class="badge bg-light text-warning border border-warning text-dark">
-                                        <i class="fas fa-home me-1"></i>Hocanın Evi
-                                    </span>
-                                {% elif item.location == 'student_home' %}
-                                    <span class="badge bg-light text-success border border-success text-dark">
-                                        <i class="fas fa-walking me-1"></i>Senin Evin
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-light text-secondary border border-secondary text-dark">
-                                        <i class="fas fa-university me-1"></i>Kampüs
-                                    </span>
-                                {% endif %}
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt me-1"></i> {{ item.get_location_display }}
+                                </small>
                             </div>
                             <hr>
                             
@@ -122,6 +111,7 @@
                     <i class="fas fa-search-minus fa-4x text-muted mb-3 opacity-25"></i>
                     <h3>Aradığınız kriterde ders bulunamadı.</h3>
                     <p class="text-muted">Farklı bir kelime deneyin veya filtreleri değiştirin.</p>
+                    <a href="{% url 'search_skills' %}" class="btn btn-outline-primary">Tüm Dersleri Göster</a>
                 </div>
             {% endif %}
         </div>

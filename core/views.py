@@ -7,6 +7,8 @@ from django.db import models
 from django.db.models import Q, Count, Sum
 from django.utils import timezone
 from django.core.cache import cache
+from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES 
+from django.db.models import Q
 
 # --- FORMLAR ---
 from .forms import (
@@ -26,7 +28,7 @@ from .models import (
     Session, 
     Review, 
     Message, 
-    Category, # <-- HATA VEREN PARÇA BUYDU, ARTIK TAMAM
+    
     Profile
 )
 
@@ -115,53 +117,62 @@ def logout_view(request):
     return redirect('login')
 
 
+# core/views.py içindeki add_skill fonksiyonu
+
 @login_required
 def add_skill(request):
     if request.method == 'POST':
-        # request.FILES önemli! Dosya yüklemek için şart.
-        form = UserSkillForm(request.POST, request.FILES) 
+        form = UserSkillForm(request.POST, request.FILES)
         if form.is_valid():
-            new_skill = form.save(commit=False)
-            new_skill.user = request.user
-            new_skill.is_approved = False # Admin onaylayana kadar pasif
-            new_skill.save()
-            messages.success(request, "Yetenek eklendi! Admin sertifikanızı onayladıktan sonra ders verebileceksiniz.")
+            # 1. Kaydı oluştur ama henüz DB'ye yazma (skill ve description burada otomatik set edilir)
+            user_skill = form.save(commit=False)
+            
+            # 2. Eksik olan kullanıcıyı ekle
+            user_skill.user = request.user
+            
+            # 3. Şimdi her şey tamamsa kaydet
+            user_skill.save()
+            
+            messages.success(request, f"'{user_skill.skill.name}' yeteneği başarıyla eklendi! Admin onayı bekleniyor.")
             return redirect('dashboard')
     else:
         form = UserSkillForm()
 
     return render(request, 'core/add_skill.html', {'form': form})
-
-
 # core/views.py içindeki search_skills fonksiyonu
 
 # core/views.py içindeki search_skills fonksiyonunun FİNAL HALİ
 
-def search_skills(request):
-    query = request.GET.get('q')
-    category_id = request.GET.get('category')
+# Gerekli importları en tepeye eklediğinden emin ol:
+# from .models import UserSkill, CATEGORY_CHOICES
+# from django.db.models import Q
 
-    # 1. ADIM: Veritabanından SADECE ONAYLI olanları çek
-    # (Burada 'onaylilar' yerine direkt 'skills' değişkenini kullanıyoruz)
+def search_skills(request):
+    # 1. ADIM: Sadece onaylı yetenekleri çek
     skills = UserSkill.objects.filter(is_approved=True)
 
-    # 2. ADIM: Arama kelimesi varsa filtrele
+    query = request.GET.get('q')
+    category_code = request.GET.get('category') # Artık ID değil, kod geliyor (örn: 'software')
+
+    # 2. ADIM: Arama kelimesi varsa filtrele (Hem ders adında hem hoca adında arar)
     if query:
         skills = skills.filter(
-            models.Q(skill__name__icontains=query) | 
-            models.Q(skill__description__icontains=query)
+            Q(skill__name__icontains=query) | 
+            Q(skill__description__icontains=query) |
+            Q(user__username__icontains=query) |
+            Q(user__first_name__icontains=query)
         )
 
     # 3. ADIM: Kategori seçildiyse filtrele
-    if category_id:
-        skills = skills.filter(skill__category_id=category_id)
-
-    # Kategorileri dropdown için gönder
-    categories = Category.objects.all()
+    # 'all' seçeneği HTML'den "Tüm Kategoriler" olarak gelebilir, onu filtrelemeyiz.
+    if category_code and category_code != 'all':
+        # DİKKAT: Artık 'skill__category_id' DEĞİL, 'skill__category' kullanıyoruz.
+        skills = skills.filter(skill__category=category_code)
 
     context = {
         'skills': skills,
-        'categories': categories,
+        # Veritabanından (Category.objects.all) değil, models.py'deki listeden çekiyoruz:
+        'categories': CATEGORY_CHOICES, 
     }
     return render(request, 'core/search_skills.html', context)
 

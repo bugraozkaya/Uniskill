@@ -1,77 +1,61 @@
 from django.contrib import admin
-from .models import Profile, Category, Skill, UserSkill, Session, Review
+from .models import User, Profile, Skill, UserSkill, Session, Review, Message
 
-# --- 1. PROFIL YÖNETİMİ (GÜNCELLENDİ) ---
+# --- 1. KULLANICI & PROFİL YÖNETİMİ ---
 
-# Toplu Onaylama Fonksiyonu (Action)
 @admin.action(description='Seçili Profilleri ONAYLA (Aktif Yap)')
 def approve_profiles(modeladmin, request, queryset):
     queryset.update(status='active')
-    modeladmin.message_user(request, "Seçilen profiller başarıyla onaylandı/aktif edildi.")
+    modeladmin.message_user(request, "Seçilen profiller başarıyla onaylandı.")
 
 @admin.action(description='Seçili Profilleri ASKIYA AL')
 def suspend_profiles(modeladmin, request, queryset):
     queryset.update(status='suspended')
 
 class ProfileAdmin(admin.ModelAdmin):
-    # Listede görünecek sütunlar
     list_display = ('user', 'balance', 'status')
-    
-    # *** İŞTE SİHİRLİ SATIR BURASI ***
-    # Bu satır sayesinde listedeyken durumu değiştirebileceksin:
-    list_editable = ('status',) 
-    
+    list_editable = ('status',)  
     search_fields = ('user__username', 'user__email')
     list_filter = ('status',)
-    
-    # Toplu işlem butonlarını ekle
     actions = [approve_profiles, suspend_profiles]
 
 admin.site.register(Profile, ProfileAdmin)
+admin.site.register(User)
 
+# --- 2. YETENEK YÖNETİMİ (Category Yok Artık) ---
 
-# --- 2. DİĞER MODELLER ---
+@admin.register(Skill)
+class SkillAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category') 
+    list_filter = ('category',)
+    search_fields = ('name',)
 
-admin.site.register(Category)
-admin.site.register(Skill)
-
-class UserSkillAdmin(admin.ModelAdmin):
-    list_display = ('user', 'skill')
-    search_fields = ('user__username', 'skill__name')
-
-admin.site.register(UserSkill, UserSkillAdmin)
-
-admin.site.register(Review)
-
-
-# --- 3. DERS ONAY SİSTEMİ ---
-@admin.action(description='Seçili dersleri HOCAYA GÖNDER (Pending Tutor)')
-def approve_sessions(modeladmin, request, queryset):
-    queryset.update(status='pending_tutor')
-
-class SessionAdmin(admin.ModelAdmin):
-    list_display = ('student', 'tutor', 'skill', 'date', 'status')
-    list_filter = ('status', 'date')
-    actions = [approve_sessions]
-
-admin.site.register(Session, SessionAdmin)
-
-
-
-# core/admin.py içindeki UserSkillAdmin kısmını güncelle
+# --- 3. KULLANICI YETENEKLERİ ---
 
 @admin.action(description='Seçili yetenekleri ONAYLA')
 def approve_skills(modeladmin, request, queryset):
     queryset.update(is_approved=True)
 
+@admin.register(UserSkill)
 class UserSkillAdmin(admin.ModelAdmin):
-    list_display = ('user', 'skill', 'is_approved', 'certificate') # Sertifika linki de görünsün
-    list_filter = ('is_approved',) # Onaylı/Onaysız filtrelemesi
-    actions = [approve_skills] # Toplu onaylama butonu
+    list_display = ('user', 'skill', 'location', 'is_approved', 'certificate')
+    list_filter = ('is_approved', 'location')
+    search_fields = ('user__username', 'skill__name')
+    actions = [approve_skills]
 
-# Eğer önceden register varsa kaldırıp bunu kullan
-try:
-    admin.site.unregister(UserSkill)
-except:
-    pass
-admin.site.register(UserSkill, UserSkillAdmin)
+# --- 4. DERS YÖNETİMİ ---
+
+@admin.action(description='Seçili dersleri HOCAYA GÖNDER (Pending Tutor)')
+def approve_sessions(modeladmin, request, queryset):
+    queryset.update(status='pending_tutor')
+
+@admin.register(Session)
+class SessionAdmin(admin.ModelAdmin):
+    list_display = ('student', 'tutor', 'skill', 'date', 'status')
+    list_filter = ('status', 'date')
+    search_fields = ('student__username', 'tutor__username', 'skill__name')
+    actions = [approve_sessions]
+
+# --- 5. DİĞERLERİ ---
+admin.site.register(Review)
+admin.site.register(Message)
