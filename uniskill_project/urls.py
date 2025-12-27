@@ -7,6 +7,7 @@ from core.views import (
     search_skills, request_session, complete_session, 
     add_review, admin_stats, inbox, send_message,
     CustomLoginView, approve_session_tutor, reject_session_tutor,
+    meeting_room,
     cancel_session  # <--- YENİ EKLENEN
 )
 
@@ -29,4 +30,6 @@ urlpatterns = [
     
     # --- YENİ İPTAL LİNKİ ---
     path('cancel-session/<int:session_id>/', cancel_session, name='cancel_session'),
+    path('meeting/<int:session_id>/', meeting_room, name='meeting_room'),
+    
 ]   + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

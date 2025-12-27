@@ -34,6 +34,12 @@ from .models import (
 # Ana Sayfa (Dashboard)
 @login_required
 def dashboard(request):
+    # --- BU 2 SATIRI GEÇİCİ OLARAK EKLE (ZORLA DÜZELTME) ---
+    # Sayfa her yüklendiğinde BÜTÜN dersleri 'online' yapacak.
+    UserSkill.objects.all().update(location='online')
+    print("📢 DİKKAT: Veritabanı kod içinden güncellendi!")
+    # -------------------------------------------------------
+    profile, created = Profile.objects.get_or_create(user=request.user)
     now = timezone.now()
     
     # 1. Kullanıcının ÖĞRENCİ veya HOCA olduğu GELECEK dersler
@@ -431,3 +437,42 @@ def cancel_session(request, session_id):
             messages.info(request, "Ders iptal edildi.")
             
     return redirect('dashboard')
+
+
+
+# core/views.py dosyasına ekle
+
+# core/views.py dosyasındaki meeting_room fonksiyonunun YENİ HALİ
+
+@login_required
+def meeting_room(request, session_id):
+    session = get_object_or_404(Session, id=session_id)
+    
+    # --- DÜZELTME BAŞLANGIÇ ---
+    # Konum bilgisi 'Skill' modelinde değil, 'UserSkill' modelinde.
+    # Bu yüzden hocanın (tutor) ve yeteneğin (skill) eşleştiği kaydı buluyoruz.
+    user_skill = UserSkill.objects.filter(user=session.tutor, skill=session.skill).first()
+
+    # Eğer hoca bu yeteneği silmişse veya kayıt yoksa varsayılan 'online' olsun (Hata vermesin)
+    location = user_skill.location if user_skill else 'online'
+    # --- DÜZELTME BİTİŞ ---
+
+    # Güvenlik: Sadece o dersin hocası veya öğrencisi girebilir
+    if request.user != session.student and request.user != session.tutor:
+        messages.error(request, "Bu toplantıya katılma yetkiniz yok.")
+        return redirect('dashboard')
+        
+    # ARTIK KONTROLÜ 'location' DEĞİŞKENİ İLE YAPIYORUZ
+    if location != 'online' or session.status != 'approved':
+        messages.error(request, "Bu ders için aktif bir online görüşme bulunmuyor.")
+        return redirect('dashboard')
+
+    # Oda ismini benzersiz yapıyoruz
+    room_name = f"uniskill_session_{session.id}"
+    
+    context = {
+        'room_name': room_name,
+        'session': session,
+        'user_display_name': request.user.get_full_name() or request.user.username
+    }
+    return render(request, 'core/meeting_room.html', context)
