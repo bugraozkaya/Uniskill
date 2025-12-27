@@ -1,15 +1,13 @@
-from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
-from django.db import models
-from django.db.models import Q, Count, Sum
+from django.db import models, transaction  # transaction'ı ekledim (aşağıda lazım olacak)
+from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
 from django.core.cache import cache
-from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES 
-from django.db.models import Q
+from django.utils.dateparse import parse_datetime
 
 # --- FORMLAR ---
 from .forms import (
@@ -21,7 +19,6 @@ from .forms import (
 )
 
 # --- MODELLER ---
-# DİKKAT: 'Category' ve 'Profile' buraya eklendi
 from .models import (
     User, 
     Skill, 
@@ -29,64 +26,58 @@ from .models import (
     Session, 
     Review, 
     Message, 
-    
-    Profile
+    Profile,
+    CATEGORY_CHOICES
 )
 
 
 # Ana Sayfa (Dashboard)
 # core/views.py içinde dashboard fonksiyonunun YENİ HALİ
 
+# core/views.py
+
+# core/views.py
+
+# core/views.py dosyasındaki dashboard fonksiyonunun DOĞRU HALİ
+
 @login_required
 def dashboard(request):
-    # --- (İsteğe Bağlı) ZORLA DÜZELTME KODU ---
-    # Eğer "Online" butonu hala gelmiyorsa bu satırı aktif bırak.
-    # Sorun çözüldüyse bu satırı silebilirsin.
-    UserSkill.objects.all().update(location='online') 
-    # -------------------------------------------------------
-
+    # Profil yoksa oluştur
     profile, created = Profile.objects.get_or_create(user=request.user)
     
-    # 1. Kullanıcının dahil olduğu BÜTÜN dersleri çekiyoruz (Tarihe göre sıralı)
-    # (Burada now/zaman filtresi yapmıyoruz, hepsini alıp aşağıda ayıklayacağız)
+    # 1. Dersleri Çek
     all_sessions = Session.objects.filter(
-        models.Q(student=request.user) | models.Q(tutor=request.user)
+        Q(student=request.user) | Q(tutor=request.user)
     ).order_by('date')
 
-    # 2. Dersleri 'Aktif' ve 'Geçmiş' diye Python ile ayırıyoruz
-    my_sessions = []   # Yaklaşan veya Şu An Devam Edenler (2 saatlik ders bitmediyse buraya)
-    past_sessions = [] # Süresi Tamamen Bitmiş Olanlar
+    my_sessions = []
+    past_sessions = []
 
     for session in all_sessions:
-        if session.status == 'cancelled':
-            # İptal edilenleri direkt geçmişe atalım
-            past_sessions.append(session)
-        elif session.is_expired:
-            # Modeldeki is_expired fonksiyonu "Süre bitti mi?" diye bakar.
-            # Bitti ise -> Geçmiş Listesine
+        if session.status in ['cancelled', 'completed'] or session.is_expired:
             past_sessions.append(session)
         else:
-            # Süresi dolmamışsa (veya şu an işleniyorsa) -> Aktif Listesine
             my_sessions.append(session)
     
-    # Listeyi ters çevirelim ki geçmiş derslerde en son biten en üstte dursun
     past_sessions.reverse() 
 
-    # 3. Öğretebileceğim yetenekler listesi
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # Bakiye Hesaplama (Güvenli Erişim)
-    try:
-        balance = request.user.profile.balance
-    except:
-        balance = 0
+    # --- HATA DÜZELTME BÖLÜMÜ ---
+    for session in past_sessions:
+        # HATA 1 ÇÖZÜMÜ: 'reviewer' parametresini kaldırdık.
+        # Sadece 'session'a bakmak yeterli.
+        check_review = Review.objects.filter(session=session).exists()
+        
+        # HATA 2 ÇÖZÜMÜ: 'has_review' (model property) yerine 'is_rated' (geçici değişken) kullandık.
+        session.is_rated = check_review
+    # ----------------------------
 
     context = {
-        'my_sessions': my_sessions,     # Artık akıllı filtrelenmiş liste
-        'past_sessions': past_sessions, # Sadece süresi bitenler
+        'my_sessions': my_sessions,
+        'past_sessions': past_sessions,
         'my_skills': my_skills,
-        'bakiye': balance,
-        'bolum': 'Bilgisayar Mühendisliği' 
+        'profile': profile,
     }
     
     return render(request, 'core/dashboard.html', context)
@@ -220,42 +211,12 @@ def request_session(request, skill_id):
 @login_required
 def complete_session(request, session_id):
     session = get_object_or_404(Session, id=session_id)
-
-    # Security check: Only the student can complete the session
-    if request.user != session.student:
-        messages.error(request, "You are not authorized to complete this session.")
-        return redirect('dashboard')
-
-    if session.status != 'approved':
-        messages.error(request, "Only active sessions can be completed.")
-        return redirect('dashboard')
-
-    # --- BALANCE TRANSFER LOGIC START ---
-    # Use database transaction to ensure safety
-    with transaction.atomic():
-        # 1. Update session status
+    
+    if request.user == session.student or request.user == session.tutor:
         session.status = 'completed'
         session.save()
-
-        # 2. Get profiles
-        student_profile = session.student.profile
-        tutor_profile = session.tutor.profile
-
-        # 3. Transfer Balance (Subtract from student, Add to tutor)
-        # We assume validation was done at booking, but safe to check again
-        if student_profile.balance >= session.duration:
-            student_profile.balance -= session.duration
-            tutor_profile.balance += session.duration
-            
-            student_profile.save()
-            tutor_profile.save()
-            
-            messages.success(request, f"Session completed! {session.duration} hours transferred to the tutor.")
-        else:
-            # If student somehow has negative balance (edge case)
-            messages.warning(request, "Session marked completed, but student had insufficient balance for transfer.")
-    # --- BALANCE TRANSFER LOGIC END ---
-
+        messages.success(request, "Ders tamamlandı olarak işaretlendi.")
+    
     return redirect('dashboard')
 
 @login_required
@@ -328,34 +289,9 @@ def admin_stats(request):
 
     return render(request, 'core/admin_stats.html', context)
 
-@login_required
-def inbox(request):
-    # Bana gelen mesajları al, en yeniden eskiye sırala
-    messages = Message.objects.filter(recipient=request.user).order_by('-created_at')
-    
-    # Okunmamışları 'okundu' yap (İsteğe bağlı, basitlik için hepsini okundu sayabiliriz sayfayı açınca)
-    # messages.filter(is_read=False).update(is_read=True) 
-    
-    return render(request, 'core/inbox.html', {'messages': messages})
 
-@login_required
-def send_message(request, recipient_id):
-    recipient = get_object_or_404(User, id=recipient_id)
-    
-    if request.method == 'POST':
-        form = MesajFormu(request.POST)
-        if form.is_valid():
-            msg = form.save(commit=False)
-            msg.sender = request.user
-            msg.recipient = recipient
-            msg.save()
-            messages.success(request, "Mesajınız gönderildi!")
-            return redirect('dashboard')
-    else:
-        form = MesajFormu()
-        
-    return render(request, 'core/send_message.html', {'form': form, 'recipient': recipient})
-# core/views.py dosyasındaki CustomLoginView sınıfının GÜNCEL HALİ
+
+
 
 # core/views.py
 import time  # <-- EN ÜSTE BUNU EKLEMEYİ UNUTMA
@@ -533,3 +469,104 @@ def meeting_room(request, session_id):
         'user_display_name': request.user.get_full_name() or request.user.username
     }
     return render(request, 'core/meeting_room.html', context)
+
+
+@login_required
+def new_chat(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        
+        try:
+            # Kullanıcıyı veritabanında ara
+            recipient = User.objects.get(username=username)
+            
+            # Kendine mesaj atmasını engelle
+            if recipient == request.user:
+                messages.warning(request, "Kendinize mesaj atamazsınız.")
+                return redirect('inbox')
+                
+            # Bulursa direkt sohbet sayfasına yönlendir
+            return redirect('chat_detail', user_id=recipient.id)
+            
+        except User.DoesNotExist:
+            # Bulamazsa hata ver
+            messages.error(request, "Bu kullanıcı adına sahip kimse bulunamadı.")
+            return redirect('inbox')
+            
+    return redirect('inbox')
+
+
+# --- MESAJLAŞMA SİSTEMİ ---
+
+@login_required
+def inbox(request):
+    # Kullanıcının dahil olduğu mesajları al
+    messages_qs = Message.objects.filter(
+        Q(sender=request.user) | Q(recipient=request.user)
+    ).order_by('-created_at')
+
+    conversations = []
+    seen_users = set()
+
+    for msg in messages_qs:
+        other_user = msg.recipient if msg.sender == request.user else msg.sender
+        if other_user not in seen_users:
+            conversations.append({
+                'user': other_user,
+                'last_message': msg
+            })
+            seen_users.add(other_user)
+
+    return render(request, 'core/inbox.html', {'conversations': conversations})
+
+@login_required
+def chat_detail(request, user_id):
+    other_user = get_object_or_404(User, id=user_id)
+    
+    # İki kişi arasındaki tüm mesajları çek
+    messages_qs = Message.objects.filter(
+        (Q(sender=request.user) & Q(recipient=other_user)) |
+        (Q(sender=other_user) & Q(recipient=request.user))
+    ).order_by('created_at')
+
+    # Okundu olarak işaretle
+    unread = messages_qs.filter(recipient=request.user, is_read=False)
+    unread.update(is_read=True)
+
+    if request.method == 'POST':
+        form = MesajFormu(request.POST)
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.sender = request.user
+            msg.recipient = other_user
+            msg.save()
+            return redirect('chat_detail', user_id=user_id)
+    else:
+        form = MesajFormu()
+
+    context = {
+        'other_user': other_user,
+        'messages': messages_qs,
+        'form': form
+    }
+    return render(request, 'core/chat.html', context)
+
+@login_required
+def send_message(request, recipient_id):
+    # Ders Ara sayfasından gelen istekleri chat'e yönlendir
+    return redirect('chat_detail', user_id=recipient_id)
+
+@login_required
+def new_chat(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        try:
+            recipient = User.objects.get(username=username)
+            if recipient == request.user:
+                messages.warning(request, "Kendinize mesaj atamazsınız.")
+                return redirect('inbox')
+            return redirect('chat_detail', user_id=recipient.id)
+        except User.DoesNotExist:
+            messages.error(request, "Kullanıcı bulunamadı.")
+            return redirect('inbox')
+    return redirect('inbox')

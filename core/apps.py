@@ -7,3 +7,4 @@ class CoreConfig(AppConfig):
     # Bu fonksiyonu ekle:
     def ready(self):
         import core.signals
+

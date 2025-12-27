@@ -5,6 +5,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
+
 
 # 1. USER MANAGEMENT (Kullanıcı ve Güvenlik)
 class User(AbstractUser):
@@ -111,13 +113,29 @@ class Session(models.Model):
     
     @property
     def has_review(self):
-        return hasattr(self, 'review')
+        """
+        Bu derse ait bir yorum var mı kontrol eder.
+        Review modelinde session alanının related_name'i yoksa varsayılan 'review_set' kullanılır.
+        """
+        # Eğer Review modelinde OneToOneField kullandıysan:
+        return hasattr(self, 'review') 
+        
+        # Eğer Review modelinde ForeignKey kullandıysan (Genel kullanım):
+        # return self.review_set.exists()
     
     def __str__(self):
         return f"{self.student.username} -> {self.tutor.username} ({self.skill.name})"
     
     @property
     def is_expired(self):
+        end_time = self.date + timedelta(hours=self.duration)
+        return timezone.now() > end_time
+    @property
+    def is_expired(self):
+        """Dersin süresi dolmuş mu kontrol eder."""
+        if not self.date:
+            return False
+        # Bitiş zamanı = Ders Başlangıcı + Süresi (Saat)
         end_time = self.date + timedelta(hours=self.duration)
         return timezone.now() > end_time
 
@@ -154,7 +172,7 @@ class Profile(models.Model):
     )
     referral_code = models.CharField(max_length=10, blank=True, null=True, unique=True)
     used_referral = models.CharField(max_length=10, blank=True, null=True)
-
+    is_rewarded = models.BooleanField(default=False, verbose_name="Referans Ödülü Verildi mi?")
     def __str__(self):
         return f"{self.user.username} Profili"
 
