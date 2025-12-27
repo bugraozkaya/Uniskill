@@ -9,6 +9,8 @@ from django.utils import timezone
 from django.core.cache import cache
 from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES 
 from django.db.models import Q
+from .models import User, Message
+from .forms import MesajFormu
 
 # --- FORMLAR ---
 from .forms import (
@@ -499,3 +501,104 @@ def meeting_room(request, session_id):
         'user_display_name': request.user.get_full_name() or request.user.username
     }
     return render(request, 'core/meeting_room.html', context)
+
+
+@login_required
+def new_chat(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        
+        try:
+            # Kullanıcıyı veritabanında ara
+            recipient = User.objects.get(username=username)
+            
+            # Kendine mesaj atmasını engelle
+            if recipient == request.user:
+                messages.warning(request, "Kendinize mesaj atamazsınız.")
+                return redirect('inbox')
+                
+            # Bulursa direkt sohbet sayfasına yönlendir
+            return redirect('chat_detail', user_id=recipient.id)
+            
+        except User.DoesNotExist:
+            # Bulamazsa hata ver
+            messages.error(request, "Bu kullanıcı adına sahip kimse bulunamadı.")
+            return redirect('inbox')
+            
+    return redirect('inbox')
+
+
+# --- MESAJLAŞMA SİSTEMİ ---
+
+@login_required
+def inbox(request):
+    # Kullanıcının dahil olduğu mesajları al
+    messages_qs = Message.objects.filter(
+        Q(sender=request.user) | Q(recipient=request.user)
+    ).order_by('-created_at')
+
+    conversations = []
+    seen_users = set()
+
+    for msg in messages_qs:
+        other_user = msg.recipient if msg.sender == request.user else msg.sender
+        if other_user not in seen_users:
+            conversations.append({
+                'user': other_user,
+                'last_message': msg
+            })
+            seen_users.add(other_user)
+
+    return render(request, 'core/inbox.html', {'conversations': conversations})
+
+@login_required
+def chat_detail(request, user_id):
+    other_user = get_object_or_404(User, id=user_id)
+    
+    # İki kişi arasındaki tüm mesajları çek
+    messages_qs = Message.objects.filter(
+        (Q(sender=request.user) & Q(recipient=other_user)) |
+        (Q(sender=other_user) & Q(recipient=request.user))
+    ).order_by('created_at')
+
+    # Okundu olarak işaretle
+    unread = messages_qs.filter(recipient=request.user, is_read=False)
+    unread.update(is_read=True)
+
+    if request.method == 'POST':
+        form = MesajFormu(request.POST)
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.sender = request.user
+            msg.recipient = other_user
+            msg.save()
+            return redirect('chat_detail', user_id=user_id)
+    else:
+        form = MesajFormu()
+
+    context = {
+        'other_user': other_user,
+        'messages': messages_qs,
+        'form': form
+    }
+    return render(request, 'core/chat.html', context)
+
+@login_required
+def send_message(request, recipient_id):
+    # Ders Ara sayfasından gelen istekleri chat'e yönlendir
+    return redirect('chat_detail', user_id=recipient_id)
+
+@login_required
+def new_chat(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        try:
+            recipient = User.objects.get(username=username)
+            if recipient == request.user:
+                messages.warning(request, "Kendinize mesaj atamazsınız.")
+                return redirect('inbox')
+            return redirect('chat_detail', user_id=recipient.id)
+        except User.DoesNotExist:
+            messages.error(request, "Kullanıcı bulunamadı.")
+            return redirect('inbox')
+    return redirect('inbox')
