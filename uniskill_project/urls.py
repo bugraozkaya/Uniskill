@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 from core.views import (
     dashboard, register, logout_view, add_skill, 
     search_skills, request_session, complete_session, 
@@ -27,4 +29,4 @@ urlpatterns = [
     
     # --- YENİ İPTAL LİNKİ ---
     path('cancel-session/<int:session_id>/', cancel_session, name='cancel_session'),
-]
+]   + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

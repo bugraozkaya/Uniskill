@@ -1,28 +1,35 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from .forms import OgrenciKayitFormu
-from .forms import OgrenciKayitFormu, YetenekEkleFormu # <-- YetenekEkleFormu'nu ekledik
-from .models import Skill # <-- Skill modelini de ekle
-from .models import UserSkill
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
-from django.contrib import messages # Hata mesajı göstermek için
-from .forms import DersTalepFormu
-from .models import Session, UserSkill # Session ve UserSkill modellerini import et
-from .models import Review
-from .forms import DegerlendirmeFormu
-from .models import User, UserSkill, Session, Review
-from django.db.models import Count, Sum
-from .models import Message
-from .forms import MesajFormu
 from django.contrib.auth.views import LoginView
-from django.core.cache import cache # Hafıza (RAM) işlemleri için
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import models
+from django.db.models import Q, Count, Sum
 from django.utils import timezone
-from .models import Session, UserSkill
-from django.db import models  # <-- Bunu dosyanın en tepesine ekle!
+from django.core.cache import cache
+
+# --- FORMLAR ---
+from .forms import (
+    OgrenciKayitFormu, 
+    UserSkillForm, 
+    DersTalepFormu, 
+    DegerlendirmeFormu, 
+    MesajFormu
+)
+
+# --- MODELLER ---
+# DİKKAT: 'Category' ve 'Profile' buraya eklendi
+from .models import (
+    User, 
+    Skill, 
+    UserSkill, 
+    Session, 
+    Review, 
+    Message, 
+    Category, # <-- HATA VEREN PARÇA BUYDU, ARTIK TAMAM
+    Profile
+)
+
 
 # Ana Sayfa (Dashboard)
 @login_required
@@ -96,51 +103,52 @@ def logout_view(request):
 @login_required
 def add_skill(request):
     if request.method == 'POST':
-        form = YetenekEkleFormu(request.POST)
+        # request.FILES önemli! Dosya yüklemek için şart.
+        form = UserSkillForm(request.POST, request.FILES) 
         if form.is_valid():
-            # 1. Formdan verileri al
-            kategori = form.cleaned_data['category']
-            yetenek_adi = form.cleaned_data['skill_name']
-            aciklama = form.cleaned_data['description']
-
-            # 2. Önce bu isimde bir yetenek var mı diye bak (Yetenek Havuzu)
-            # Varsa onu al, yoksa yeni oluştur.
-            skill_obj, created = Skill.objects.get_or_create(
-                name=yetenek_adi,
-                category=kategori,
-                defaults={'description': aciklama}
-            )
-
-            # 3. Bu yeteneği, giriş yapan kullanıcıya bağla (UserSkill Tablosu)
-            UserSkill.objects.create(
-                user=request.user,
-                skill=skill_obj
-            )
-            
+            new_skill = form.save(commit=False)
+            new_skill.user = request.user
+            new_skill.is_approved = False # Admin onaylayana kadar pasif
+            new_skill.save()
+            messages.success(request, "Yetenek eklendi! Admin sertifikanızı onayladıktan sonra ders verebileceksiniz.")
             return redirect('dashboard')
     else:
-        form = YetenekEkleFormu()
+        form = UserSkillForm()
 
     return render(request, 'core/add_skill.html', {'form': form})
 
 
-@login_required
-def search_skills(request):
-    # 1. Varsayılan olarak: Kendi ilanlarım HARİÇ tüm ilanları getir
-    skills = UserSkill.objects.exclude(user=request.user)
-    
-    # 2. Arama yapıldı mı? (Kullanıcı arama kutusuna bir şey yazdı mı?)
-    query = request.GET.get('q') # URL'den 'q' parametresini al
-    if query:
-        # Hem yetenek adında hem de açıklamasında ara
-        skills = skills.filter(
-            Q(skill__name__icontains=query) | 
-            Q(skill__description__icontains=query) |
-            Q(skill__category__name__icontains=query)
-        )
-    
-    return render(request, 'core/search_skills.html', {'skills': skills})
+# core/views.py içindeki search_skills fonksiyonu
 
+# core/views.py içindeki search_skills fonksiyonunun FİNAL HALİ
+
+def search_skills(request):
+    query = request.GET.get('q')
+    category_id = request.GET.get('category')
+
+    # 1. ADIM: Veritabanından SADECE ONAYLI olanları çek
+    # (Burada 'onaylilar' yerine direkt 'skills' değişkenini kullanıyoruz)
+    skills = UserSkill.objects.filter(is_approved=True)
+
+    # 2. ADIM: Arama kelimesi varsa filtrele
+    if query:
+        skills = skills.filter(
+            models.Q(skill__name__icontains=query) | 
+            models.Q(skill__description__icontains=query)
+        )
+
+    # 3. ADIM: Kategori seçildiyse filtrele
+    if category_id:
+        skills = skills.filter(skill__category_id=category_id)
+
+    # Kategorileri dropdown için gönder
+    categories = Category.objects.all()
+
+    context = {
+        'skills': skills,
+        'categories': categories,
+    }
+    return render(request, 'core/search_skills.html', context)
 
 # core/views.py içindeki request_session fonksiyonunun EN GÜNCEL HALİ:
 
@@ -218,35 +226,6 @@ def add_review(request, session_id):
 
     return render(request, 'core/add_review.html', {'form': form, 'session': session})
 
-
-@login_required
-def search_skills(request):
-    # 1. Başlangıç: Kendi ilanlarım HARİÇ hepsini getir
-    skills = UserSkill.objects.exclude(user=request.user)
-    
-    # 2. Kelime Arama (Database tarafında yapılır)
-    query = request.GET.get('q')
-    if query:
-        skills = skills.filter(
-            Q(skill__name__icontains=query) | 
-            Q(skill__description__icontains=query) |
-            Q(skill__category__name__icontains=query)
-        )
-    
-    # --- YENİ KISIM: PUAN FİLTRELEME ---
-    # Not: average_rating veritabanında olmadığı için Python tarafında filtreliyoruz
-    rating_filter = request.GET.get('rating')
-    
-    if rating_filter:
-        try:
-            min_rating = int(rating_filter)
-            # Python List Comprehension ile filtrele:
-            # "Eğer hocanın puanı seçilen puandan büyükse listeye al"
-            skills = [s for s in skills if s.user.average_rating >= min_rating]
-        except ValueError:
-            pass # Eğer url ile oynayıp harf yazarlarsa hata vermesin, geçsin.
-            
-    return render(request, 'core/search_skills.html', {'skills': skills})
 
 
 @login_required

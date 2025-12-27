@@ -3,6 +3,8 @@ from django.contrib.auth.forms import UserCreationForm
 # Modelleri import et (Review modelini eklemeyi unutma!)
 from .models import User, UserSkill, Skill, Category, Session, Review 
 from .models import Message
+from django import forms
+from .models import UserSkill
 
 class OgrenciKayitFormu(UserCreationForm):
     # ... (Buradaki eski kodların aynen kalsın) ...
@@ -78,4 +80,15 @@ class MesajFormu(forms.ModelForm):
         }
         labels = {
             'body': 'Mesajınız'
+        }
+
+
+
+class UserSkillForm(forms.ModelForm):
+    class Meta:
+        model = UserSkill
+        fields = ['skill', 'certificate'] # Kullanıcı sadece yeteneği ve belgeyi görür
+        widgets = {
+            'skill': forms.Select(attrs={'class': 'form-select'}),
+            'certificate': forms.FileInput(attrs={'class': 'form-control'})
         }

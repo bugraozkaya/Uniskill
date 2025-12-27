@@ -55,3 +55,23 @@ class SessionAdmin(admin.ModelAdmin):
     actions = [approve_sessions]
 
 admin.site.register(Session, SessionAdmin)
+
+
+
+# core/admin.py içindeki UserSkillAdmin kısmını güncelle
+
+@admin.action(description='Seçili yetenekleri ONAYLA')
+def approve_skills(modeladmin, request, queryset):
+    queryset.update(is_approved=True)
+
+class UserSkillAdmin(admin.ModelAdmin):
+    list_display = ('user', 'skill', 'is_approved', 'certificate') # Sertifika linki de görünsün
+    list_filter = ('is_approved',) # Onaylı/Onaysız filtrelemesi
+    actions = [approve_skills] # Toplu onaylama butonu
+
+# Eğer önceden register varsa kaldırıp bunu kullan
+try:
+    admin.site.unregister(UserSkill)
+except:
+    pass
+admin.site.register(UserSkill, UserSkillAdmin)

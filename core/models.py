@@ -59,12 +59,21 @@ class Skill(models.Model):
         return self.name
 
 # 3. USER SKILLS (Hangi kullanıcı hangi dersi veriyor - M:N Ara Tablosu)
+# core/models.py içinde
+
 class UserSkill(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='teaching_skills')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
     
+    # --- YENİ EKLENEN ALANLAR ---
+    # Kullanıcıdan belge istiyoruz (Zorunlu)
+    certificate = models.FileField(upload_to='certificates/', verbose_name="Sertifika/Belge", blank=False, null=True)
+    
+    # Admin onayı gerekiyor (Varsayılan: Onaysız)
+    is_approved = models.BooleanField(default=False, verbose_name="Onaylandı mı?")
+
     def __str__(self):
-        return f"{self.user.username} teaches {self.skill.name}"
+        return f"{self.user.username} - {self.skill.name}"
 
 # 4. SESSION / TRANSACTION (Zaman Bankası İşlemleri)
 class Session(models.Model):

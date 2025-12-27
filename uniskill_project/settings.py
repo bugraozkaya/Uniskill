@@ -136,3 +136,9 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+
+
+# settings.py en altı
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
