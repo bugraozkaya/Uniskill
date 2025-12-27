@@ -142,14 +142,25 @@ def add_skill(request):
 # from .models import UserSkill, CATEGORY_CHOICES
 # from django.db.models import Q
 
+# core/views.py
+
+from django.shortcuts import render
+from .models import UserSkill, CATEGORY_CHOICES
+# Q'nun yanına Avg (Average/Ortalama) fonksiyonunu eklemeyi UNUTMA
+from django.db.models import Q, Avg 
+
 def search_skills(request):
-    # 1. ADIM: Sadece onaylı yetenekleri çek
-    skills = UserSkill.objects.filter(is_approved=True)
+    # 1. ADIM: Onaylı yetenekleri çek VE her biri için Ortalamayı Hesapla (Annotate)
+    # 'session__review__rating': Bu ilişki zincirini takip ederek puanları bulur.
+    skills = UserSkill.objects.filter(is_approved=True).annotate(
+        average_rating=Avg('user__given_sessions__review__rating')
+    )
 
     query = request.GET.get('q')
-    category_code = request.GET.get('category') # Artık ID değil, kod geliyor (örn: 'software')
+    category_code = request.GET.get('category')
+    min_rating = request.GET.get('rating') # YENİ: URL'den puan parametresini alıyoruz
 
-    # 2. ADIM: Arama kelimesi varsa filtrele (Hem ders adında hem hoca adında arar)
+    # 2. ADIM: Kelime Arama
     if query:
         skills = skills.filter(
             Q(skill__name__icontains=query) | 
@@ -158,16 +169,25 @@ def search_skills(request):
             Q(user__first_name__icontains=query)
         )
 
-    # 3. ADIM: Kategori seçildiyse filtrele
-    # 'all' seçeneği HTML'den "Tüm Kategoriler" olarak gelebilir, onu filtrelemeyiz.
+    # 3. ADIM: Kategori Filtreleme
     if category_code and category_code != 'all':
-        # DİKKAT: Artık 'skill__category_id' DEĞİL, 'skill__category' kullanıyoruz.
         skills = skills.filter(skill__category=category_code)
+
+    # 4. ADIM: PUAN FİLTRELEME (YENİ KISIM)
+    if min_rating:
+        # average_rating (hesapladığımız alan) >= seçilen puan
+        skills = skills.filter(average_rating__gte=int(min_rating))
+
+    # SIRALAMA: En yüksek puanlılar en üstte görünsün, puanı olmayanlar altta kalsın
+    skills = skills.order_by('-average_rating', '-id')
 
     context = {
         'skills': skills,
-        # Veritabanından (Category.objects.all) değil, models.py'deki listeden çekiyoruz:
-        'categories': CATEGORY_CHOICES, 
+        'categories': CATEGORY_CHOICES,
+        # Formda kullanıcının seçtiği değerler kaybolmasın diye geri gönderiyoruz:
+        'selected_category': category_code,
+        'selected_rating': min_rating,
+        'query': query
     }
     return render(request, 'core/search_skills.html', context)
 

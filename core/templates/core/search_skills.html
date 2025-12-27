@@ -22,31 +22,49 @@
     <div class="container">
         
         <div class="row justify-content-center mb-5">
-            <div class="col-md-10">
-                <form method="get" class="card card-body shadow-sm border-0 p-2">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-0"><i class="fas fa-search text-muted"></i></span>
+            <div class="col-md-12"> <form method="get" class="card card-body shadow-sm border-0 p-3">
+                    <div class="row g-2">
                         
-                        <input type="text" name="q" class="form-control border-0 shadow-none" 
-                               placeholder="Ne öğrenmek istiyorsun? (Örn: Python, Gitar)..." 
-                               value="{{ request.GET.q|default:'' }}">
-                        
-                        <select name="category" class="form-select border-0 bg-light" style="max-width: 250px; border-left: 1px solid #dee2e6 !important;">
-                            <option value="all">Tüm Kategoriler</option>
-                            {% for code, name in categories %}
-                                <option value="{{ code }}" {% if request.GET.category == code %}selected{% endif %}>
-                                    {{ name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-        
-                        <button type="submit" class="btn btn-primary px-4 fw-bold">Bul</button>
-                        
-                        {% if request.GET.q or request.GET.category %}
-                            <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary border-0" title="Filtreleri Temizle">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        {% endif %}
+                        <div class="col-lg-5 col-md-12">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" name="q" class="form-control border-start-0 bg-light" 
+                                       placeholder="Ne öğrenmek istiyorsun?" 
+                                       value="{{ query|default:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <select name="category" class="form-select bg-light">
+                                <option value="all">Tüm Kategoriler</option>
+                                {% for code, name in categories %}
+                                    <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>
+                                        {{ name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-lg-2 col-md-6">
+                            <select name="rating" class="form-select bg-light fw-bold">
+                                <option value="" class="fw-normal">Puan (Tümü)</option>
+                                <option value="4" {% if selected_rating == '4' %}selected{% endif %}>4 Puan ve Üzeri (⭐⭐⭐⭐)</option>
+                                <option value="3" {% if selected_rating == '3' %}selected{% endif %}>3 Puan ve Üzeri (⭐⭐⭐)</option>
+                                <option value="2" {% if selected_rating == '2' %}selected{% endif %}>2 Puan ve Üzeri (⭐⭐)</option>
+                                <option value="1" {% if selected_rating == '1' %}selected{% endif %}>1 Puan ve Üzeri (⭐)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-lg-2 col-md-12 d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary fw-bold w-100">Filtrele</button>
+                            
+                            {% if query or selected_category or selected_rating %}
+                                <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary w-100" title="Temizle">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+
                     </div>
                 </form>
             </div>
@@ -66,9 +84,9 @@
                                         <i class="fas fa-user me-1"></i> {{ item.user.first_name }} {{ item.user.last_name }}
                                     </div>
                                     
-                                    {% if item.user.average_rating > 0 %}
+                                    {% if item.average_rating %}
                                         <span class="badge bg-warning text-dark shadow-sm">
-                                            <i class="fas fa-star text-white"></i> {{ item.user.average_rating|floatformat:1 }}
+                                            <i class="fas fa-star text-white"></i> {{ item.average_rating|floatformat:1 }}
                                         </span>
                                     {% else %}
                                         <span class="badge bg-light text-muted border">

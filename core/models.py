@@ -99,7 +99,7 @@ class Session(models.Model):
     ]
 
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learning_sessions')
-    tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='teaching_sessions')
+    tutor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_sessions')
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
     date = models.DateTimeField()
     duration = models.PositiveIntegerField(help_text="Saat cinsinden süre")
