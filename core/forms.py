@@ -1,6 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES  
+from django import forms
+from django.contrib.auth.models import User
+from .models import Profile
+from django import forms
 # --- 1. KAYIT FORMU ---
 class OgrenciKayitFormu(UserCreationForm):
     department = forms.CharField(label="Bölüm", widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -116,3 +120,13 @@ class MesajFormu(forms.ModelForm):
         widgets = {
             'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
         }
+
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['department']

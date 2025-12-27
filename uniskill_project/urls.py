@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-
+from core import views
 # View fonksiyonlarını çağırıyoruz
 from core.views import (
     dashboard, register, logout_view, add_skill, 
@@ -51,5 +51,6 @@ urlpatterns = [
     path('send-message/<int:recipient_id>/', send_message, name='send_message'),
     path('chat/<int:user_id>/', chat_detail, name='chat_detail'), 
     path('new-chat/', new_chat, name='new_chat'),
+    path('edit-profile/', views.edit_profile, name='edit_profile'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

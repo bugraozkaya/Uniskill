@@ -8,6 +8,7 @@ from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
 from django.core.cache import cache
 from django.utils.dateparse import parse_datetime
+from .forms import UserUpdateForm, ProfileUpdateForm
 
 # --- FORMLAR ---
 from .forms import (
@@ -625,3 +626,19 @@ def public_profile(request, user_id):
         'average_rating': average_rating
     }
     return render(request, 'core/public_profile.html', context)
+
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        u_form = UserUpdateForm(request.POST, instance=request.user)
+        p_form = ProfileUpdateForm(request.POST, instance=request.user.profile)
+        if u_form.is_valid() and p_form.is_valid():
+            u_form.save()
+            p_form.save()
+            return redirect('dashboard')
+    else:
+        u_form = UserUpdateForm(instance=request.user)
+        p_form = ProfileUpdateForm(instance=request.user.profile)
+
+    return render(request, 'core/edit_profile.html', {'u_form': u_form, 'p_form': p_form})

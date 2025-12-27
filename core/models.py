@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
-
+from django import forms
 
 # 1. USER MANAGEMENT (Kullanıcı ve Güvenlik)
 class User(AbstractUser):
@@ -161,6 +161,7 @@ class Message(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     balance = models.IntegerField(default=3)
+    department = models.CharField(max_length=100, blank=True, null=True, verbose_name="Bölüm")
     status = models.CharField(
         max_length=20, 
         default='pending',
@@ -176,6 +177,23 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.user.username} Profili"
 
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        labels = {
+            'first_name': 'Ad',
+            'last_name': 'Soyad',
+            'email': 'E-posta',
+        }
+
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        # Modelinde department yok, o yüzden şimdilik sadece 
+        # varsa başka alanları ekle veya burayı boş bırak.
+        fields = [] # Modelinde department olmadığı için burayı boşalttık
+        
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
