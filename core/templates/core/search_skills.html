@@ -81,7 +81,9 @@
                                 
                                 <div class="text-end">
                                     <div class="text-muted small mb-1">
-                                        <i class="fas fa-user me-1"></i> {{ item.user.first_name }} {{ item.user.last_name }}
+                                        <a href="{% url 'public_profile' item.user.id %}" class="text-decoration-none">
+                                            <i class="fas fa-user me-1"></i> {{ item.user.first_name }} {{ item.user.last_name }}
+                                        </a>
                                     </div>
                                     
                                     {% if item.average_rating %}

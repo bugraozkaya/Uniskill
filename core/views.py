@@ -590,3 +590,38 @@ def new_chat(request):
             messages.error(request, "Kullanıcı bulunamadı.")
             return redirect('inbox')
     return redirect('inbox')
+
+# core/views.py
+
+def public_profile(request, user_id):
+    # 1. Hocayı (Kullanıcıyı) buluyoruz
+    tutor = get_object_or_404(User, id=user_id)
+    
+    # 2. Hocanın profil detaylarını al (Bölüm vs. için)
+    # Eğer profil yoksa hata vermemesi için get_or_create veya try-except kullanılabilir
+    # Ama senin sisteminde dashboard'a girince oluşuyor, biz yine de güvenli gidelim.
+    try:
+        profile = tutor.profile
+    except:
+        profile = None
+
+    # 3. Hocanın verdiği onaylı dersleri çek
+    skills = UserSkill.objects.filter(user=tutor, is_approved=True)
+
+    # 4. YORUMLARI ÇEKME (KRİTİK KISIM)
+    # Session tablosu üzerinden Tutor'u bu kişi olan derslerin yorumlarını buluyoruz.
+    reviews = Review.objects.filter(session__tutor=tutor).order_by('-created_at')
+
+    # 5. İstatistikler
+    total_sessions = Session.objects.filter(tutor=tutor, status='completed').count()
+    average_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+
+    context = {
+        'tutor': tutor,
+        'profile': profile,
+        'skills': skills,
+        'reviews': reviews,
+        'total_sessions': total_sessions,
+        'average_rating': average_rating
+    }
+    return render(request, 'core/public_profile.html', context)

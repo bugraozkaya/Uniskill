@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -10,24 +10,16 @@ from core.views import (
     add_review, admin_stats, inbox, send_message,
     CustomLoginView, approve_session_tutor, reject_session_tutor,
     meeting_room, cancel_session,
-    new_chat, chat_detail
+    new_chat, chat_detail,
+    public_profile  # <-- BURAYA EKLENDİ
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # ---------------------------------------------------------
-    # 1. KRİTİK DÜZELTME: Giriş ve Ana Sayfa Ayrımı
-    # ---------------------------------------------------------
-    
-    # Ana Sayfa (Siteye girince direkt Dashboard açılsın)
+    # Ana Sayfa ve Giriş
     path('', dashboard, name='dashboard'),
-
-    # Giriş Sayfası (Mutlaka 'login/' olmalı, boş bırakma!)
     path('login/', CustomLoginView.as_view(), name='login'),
-    
-    # ---------------------------------------------------------
-
     path('register/', register, name='register'),
     path('logout/', logout_view, name='logout'),
     
@@ -35,11 +27,12 @@ urlpatterns = [
     path('add-skill/', add_skill, name='add_skill'),
     path('search/', search_skills, name='search_skills'),
     
+    # --- PROFİL SAYFASI BURADA ---
+    path('profile/<int:user_id>/', public_profile, name='public_profile'),
+
     # Ders/Session İşlemleri
     path('request-session/<int:skill_id>/', request_session, name='request_session'),
     path('complete/<int:session_id>/', complete_session, name='complete_session'),
-    
-    # Review (Yorum) İşlemi - Tek bir tane tanımladık
     path('add-review/<int:session_id>/', add_review, name='add_review'),
 
     # Onaylama/Reddetme/İptal

@@ -144,7 +144,7 @@ class Review(models.Model):
     session = models.OneToOneField(Session, on_delete=models.CASCADE, related_name='review')
     rating = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)])
     comment = models.TextField()
-
+    created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return f"Rating: {self.rating} for Session {self.session.id}"
 
