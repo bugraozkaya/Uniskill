@@ -1,6 +1,3 @@
-# core/views.py - EN ÜST KISIM
-
-import time
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -85,27 +82,31 @@ def dashboard(request):
     
     return render(request, 'core/dashboard.html', context)
 
+# core/views.py
+
 def register(request):
     if request.method == 'POST':
         form = OgrenciKayitFormu(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
+            # 1. Create the new user
+            user = form.save()
             
-            # --- REFERANS SİSTEMİ EKLENTİSİ ---
-            ref_code = form.cleaned_data.get('referral_code')
-            if ref_code:
-                # Davet eden kullanıcıyı bul ve kaydet
-                inviter = User.objects.get(username=ref_code)
-                user.invited_by = inviter
-            # ----------------------------------
+            # 2. Check if a referral code was entered
+            referral_code = form.cleaned_data.get('referral_code')
             
-            user.save()
-            login(request, user)
-            return redirect('dashboard')
+            if referral_code:
+                # CRITICAL STEP: Save the code to the user's profile
+                # This ensures the admin can see it later during approval
+                user.profile.used_referral = referral_code
+                user.profile.save()
+            
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Account created for {username}! Please wait for admin approval.')
+            return redirect('login')
     else:
         form = OgrenciKayitFormu()
     return render(request, 'core/register.html', {'form': form})
-
+    
 # ÇIKIŞ YAPMA FONKSİYONU
 def logout_view(request):
     logout(request)
@@ -230,42 +231,11 @@ def request_session(request, skill_id):
 @login_required
 def complete_session(request, session_id):
     session = get_object_or_404(Session, id=session_id)
-
-    # 1. GÜVENLİK
-    if request.user != session.student and request.user != session.tutor:
-        messages.error(request, "Bu işlemi yapmaya yetkiniz yok.")
-        return redirect('dashboard')
-
-    # 2. HATA ÖNLEME
-    if session.status == 'completed':
-        messages.warning(request, "Bu ders zaten tamamlanmış.")
-        return redirect('dashboard')
-
-    # 3. BAKİYE TRANSFERİ (GÜVENLİ BLOK)
-    try:
-        with transaction.atomic():  # <--- BU SATIR ÇOK ÖNEMLİ
-            student_profile = session.student.profile
-            tutor_profile = session.tutor.profile
-            
-            # Bakiye Kontrolü (İsteğe bağlı ama önerilir)
-            if student_profile.balance < session.duration:
-                 messages.error(request, "Öğrencinin bakiyesi yetersiz!")
-                 return redirect('dashboard')
-
-            # İşlem
-            student_profile.balance -= session.duration
-            tutor_profile.balance += session.duration
-            
-            student_profile.save()
-            tutor_profile.save()
-            
-            session.status = 'completed'
-            session.save()
-        
-        messages.success(request, f"Ders tamamlandı! {session.duration} Saat aktarıldı.")
-
-    except Exception as e:
-        messages.error(request, "Bakiye güncellenirken bir hata oluştu.")
+    
+    if request.user == session.student or request.user == session.tutor:
+        session.status = 'completed'
+        session.save()
+        messages.success(request, "Ders tamamlandı olarak işaretlendi.")
     
     return redirect('dashboard')
 
