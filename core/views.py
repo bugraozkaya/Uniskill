@@ -1,16 +1,16 @@
+# core/views.py - EN ÜST KISIM
+
+import time
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
-from django.db import models
-from django.db.models import Q, Count, Sum
+from django.db import models, transaction  # transaction'ı ekledim (aşağıda lazım olacak)
+from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
 from django.core.cache import cache
-from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES 
-from django.db.models import Q
-from .models import User, Message
-from .forms import MesajFormu
+from django.utils.dateparse import parse_datetime
 
 # --- FORMLAR ---
 from .forms import (
@@ -22,7 +22,6 @@ from .forms import (
 )
 
 # --- MODELLER ---
-# DİKKAT: 'Category' ve 'Profile' buraya eklendi
 from .models import (
     User, 
     Skill, 
@@ -30,8 +29,8 @@ from .models import (
     Session, 
     Review, 
     Message, 
-    
-    Profile
+    Profile,
+    CATEGORY_CHOICES
 )
 
 
@@ -40,47 +39,48 @@ from .models import (
 
 # core/views.py
 
+# core/views.py
+
+# core/views.py dosyasındaki dashboard fonksiyonunun DOĞRU HALİ
+
 @login_required
 def dashboard(request):
-    # --- (İsteğe Bağlı) ZORLA DÜZELTME KODU ---
-    # Konum verisi boş olanları 'online' yapar. Sorun yoksa silebilirsin.
-    UserSkill.objects.filter(location__isnull=True).update(location='online') 
-    # -------------------------------------------------------
-
-    # Profil yoksa oluştur (Hata almamak için)
+    # Profil yoksa oluştur
     profile, created = Profile.objects.get_or_create(user=request.user)
     
-    # 1. Kullanıcının dahil olduğu BÜTÜN dersleri çekiyoruz (Tarihe göre sıralı)
+    # 1. Dersleri Çek
     all_sessions = Session.objects.filter(
         Q(student=request.user) | Q(tutor=request.user)
     ).order_by('date')
 
-    # 2. Dersleri 'Aktif' ve 'Geçmiş' diye ayırıyoruz
-    my_sessions = []   # Yaklaşan veya Şu An Devam Edenler
-    past_sessions = [] # Süresi Tamamen Bitmiş Olanlar
+    my_sessions = []
+    past_sessions = []
 
     for session in all_sessions:
-        # İptal edildiyse veya Tamamlandıysa -> Geçmişe at
-        if session.status in ['cancelled', 'completed']:
-            past_sessions.append(session)
-        # Modeldeki is_expired fonksiyonu "Süre bitti mi?" diye bakar.
-        elif session.is_expired:
+        if session.status in ['cancelled', 'completed'] or session.is_expired:
             past_sessions.append(session)
         else:
-            # Süresi dolmamışsa ve iptal/tamamlanmadıysa -> Aktif Listesine
             my_sessions.append(session)
     
-    # Geçmiş derslerde en son biten en üstte dursun diye ters çeviriyoruz
     past_sessions.reverse() 
 
-    # 3. Öğretebileceğim yetenekler listesi
     my_skills = UserSkill.objects.filter(user=request.user)
 
+    # --- HATA DÜZELTME BÖLÜMÜ ---
+    for session in past_sessions:
+        # HATA 1 ÇÖZÜMÜ: 'reviewer' parametresini kaldırdık.
+        # Sadece 'session'a bakmak yeterli.
+        check_review = Review.objects.filter(session=session).exists()
+        
+        # HATA 2 ÇÖZÜMÜ: 'has_review' (model property) yerine 'is_rated' (geçici değişken) kullandık.
+        session.is_rated = check_review
+    # ----------------------------
+
     context = {
-        'my_sessions': my_sessions,     # Gelecek Dersler (HTML'de upcoming_sessions yerine bunu kullanacağız veya html'i güncelleyeceğiz)
-        'past_sessions': past_sessions, # Geçmiş Dersler
+        'my_sessions': my_sessions,
+        'past_sessions': past_sessions,
         'my_skills': my_skills,
-        'profile': profile,             # Bakiye bilgisi profile içinde var
+        'profile': profile,
     }
     
     return render(request, 'core/dashboard.html', context)
@@ -211,39 +211,40 @@ def request_session(request, skill_id):
 def complete_session(request, session_id):
     session = get_object_or_404(Session, id=session_id)
 
-    # 1. GÜVENLİK: Sadece dersin öğrencisi veya hocası bitirebilir
+    # 1. GÜVENLİK
     if request.user != session.student and request.user != session.tutor:
         messages.error(request, "Bu işlemi yapmaya yetkiniz yok.")
         return redirect('dashboard')
 
-    # 2. HATA ÖNLEME: Ders zaten bitmişse tekrar işlem yapma (Yoksa bakiye sürekli düşer!)
+    # 2. HATA ÖNLEME
     if session.status == 'completed':
-        messages.warning(request, "Bu ders zaten tamamlanmış, işlem tekrar yapılamaz.")
+        messages.warning(request, "Bu ders zaten tamamlanmış.")
         return redirect('dashboard')
 
-    # 3. BAKİYE TRANSFERİ (MATEMATİK KISMI)
+    # 3. BAKİYE TRANSFERİ (GÜVENLİ BLOK)
     try:
-        student_profile = session.student.profile
-        tutor_profile = session.tutor.profile
+        with transaction.atomic():  # <--- BU SATIR ÇOK ÖNEMLİ
+            student_profile = session.student.profile
+            tutor_profile = session.tutor.profile
+            
+            # Bakiye Kontrolü (İsteğe bağlı ama önerilir)
+            if student_profile.balance < session.duration:
+                 messages.error(request, "Öğrencinin bakiyesi yetersiz!")
+                 return redirect('dashboard')
+
+            # İşlem
+            student_profile.balance -= session.duration
+            tutor_profile.balance += session.duration
+            
+            student_profile.save()
+            tutor_profile.save()
+            
+            session.status = 'completed'
+            session.save()
         
-        # Öğrencinin bakiyesinden ders süresini düş
-        student_profile.balance -= session.duration
-        
-        # Hocanın bakiyesine ders süresini ekle
-        tutor_profile.balance += session.duration
-        
-        # Değişiklikleri kaydet
-        student_profile.save()
-        tutor_profile.save()
-        
-        # Dersin durumunu güncelle
-        session.status = 'completed'
-        session.save()
-        
-        messages.success(request, f"Ders tamamlandı! {session.duration} Saat bakiyenizden düşüldü ve hocaya aktarıldı.")
+        messages.success(request, f"Ders tamamlandı! {session.duration} Saat aktarıldı.")
 
     except Exception as e:
-        # Eğer profil bulunamazsa veya bir hata olursa
         messages.error(request, "Bakiye güncellenirken bir hata oluştu.")
     
     return redirect('dashboard')
@@ -318,34 +319,9 @@ def admin_stats(request):
 
     return render(request, 'core/admin_stats.html', context)
 
-@login_required
-def inbox(request):
-    # Bana gelen mesajları al, en yeniden eskiye sırala
-    messages = Message.objects.filter(recipient=request.user).order_by('-created_at')
-    
-    # Okunmamışları 'okundu' yap (İsteğe bağlı, basitlik için hepsini okundu sayabiliriz sayfayı açınca)
-    # messages.filter(is_read=False).update(is_read=True) 
-    
-    return render(request, 'core/inbox.html', {'messages': messages})
 
-@login_required
-def send_message(request, recipient_id):
-    recipient = get_object_or_404(User, id=recipient_id)
-    
-    if request.method == 'POST':
-        form = MesajFormu(request.POST)
-        if form.is_valid():
-            msg = form.save(commit=False)
-            msg.sender = request.user
-            msg.recipient = recipient
-            msg.save()
-            messages.success(request, "Mesajınız gönderildi!")
-            return redirect('dashboard')
-    else:
-        form = MesajFormu()
-        
-    return render(request, 'core/send_message.html', {'form': form, 'recipient': recipient})
-# core/views.py dosyasındaki CustomLoginView sınıfının GÜNCEL HALİ
+
+
 
 # core/views.py
 import time  # <-- EN ÜSTE BUNU EKLEMEYİ UNUTMA

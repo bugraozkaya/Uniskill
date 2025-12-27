@@ -123,6 +123,8 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'core.User'
+# Kullanıcı giriş yapmadan korumalı bir sayfaya girmeye çalışırsa buraya yönlendir:
+LOGIN_URL = 'login'
 
 # Giriş yaptıktan sonra yönlendirilecek adres (urls.py'daki name='dashboard')
 LOGIN_REDIRECT_URL = 'dashboard'

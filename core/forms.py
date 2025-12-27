@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES 
-
+from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES  
 # --- 1. KAYIT FORMU ---
 class OgrenciKayitFormu(UserCreationForm):
     department = forms.CharField(label="Bölüm", widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -94,8 +93,19 @@ class DegerlendirmeFormu(forms.ModelForm):
         model = Review
         fields = ['rating', 'comment']
         widgets = {
-            'rating': forms.Select(choices=[(i, f'{i} Yıldız') for i in range(5, 0, -1)], attrs={'class': 'form-select'}),
-            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'rating': forms.Select(attrs={
+                'class': 'form-select', 
+                'style': 'height: 50px;'
+            }),
+            'comment': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Ders ve eğitmen hakkındaki düşüncelerin...',
+                'rows': 4
+            }),
+        }
+        labels = {
+            'rating': 'Puan',
+            'comment': 'Yorum'
         }
 
 # --- 5. MESAJ FORMU ---

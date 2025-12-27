@@ -113,7 +113,15 @@ class Session(models.Model):
     
     @property
     def has_review(self):
-        return hasattr(self, 'review')
+        """
+        Bu derse ait bir yorum var mı kontrol eder.
+        Review modelinde session alanının related_name'i yoksa varsayılan 'review_set' kullanılır.
+        """
+        # Eğer Review modelinde OneToOneField kullandıysan:
+        return hasattr(self, 'review') 
+        
+        # Eğer Review modelinde ForeignKey kullandıysan (Genel kullanım):
+        # return self.review_set.exists()
     
     def __str__(self):
         return f"{self.student.username} -> {self.tutor.username} ({self.skill.name})"

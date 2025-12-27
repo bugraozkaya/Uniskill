@@ -265,11 +265,21 @@
 
                                     <td class="text-end">
                                         {% if session.status == 'completed' and session.student == user %}
-                                            <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
-                                                <i class="fas fa-star me-1"></i>Puan Ver
-                                            </a>
-                                        {% else %}
+                                            
+                                            {% if session.is_rated %}
+                                                <span class="badge bg-light text-success border border-success">
+                                                    <i class="fas fa-check-double me-1"></i>Değerlendirildi
+                                                </span>
+                                            {% else %}
+                                                <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+                                                    <i class="fas fa-star me-1"></i>Puan Ver
+                                                </a>
+                                            {% endif %}
+                                        
+                                        {% elif session.status == 'cancelled' %}
                                             <small class="text-muted">-</small>
+                                        {% else %}
+                                            <small class="text-muted" title="Süre doldu">-</small>
                                         {% endif %}
                                     </td>
                                 </tr>
