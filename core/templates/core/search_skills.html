@@ -81,19 +81,38 @@
                                 {{ item.skill.description|default:"Bu ders için özel açıklama girilmemiş."|truncatechars:100 }}
                             </p>
                             
+                            <div class="mb-2">
+                                {% if item.location == 'online' %}
+                                    <span class="badge bg-light text-primary border border-primary">
+                                        <i class="fas fa-video me-1"></i>Online
+                                    </span>
+                                {% elif item.location == 'tutor_home' %}
+                                    <span class="badge bg-light text-warning border border-warning text-dark">
+                                        <i class="fas fa-home me-1"></i>Hocanın Evi
+                                    </span>
+                                {% elif item.location == 'student_home' %}
+                                    <span class="badge bg-light text-success border border-success text-dark">
+                                        <i class="fas fa-walking me-1"></i>Senin Evin
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-secondary border border-secondary text-dark">
+                                        <i class="fas fa-university me-1"></i>Kampüs
+                                    </span>
+                                {% endif %}
+                            </div>
                             <hr>
                             
                             <div class="d-grid gap-2">
-    {% if item.user.id != request.user.id %}
-        <a href="{% url 'send_message' item.user.id %}" class="btn btn-outline-secondary btn-sm">
-            <i class="far fa-comment-dots me-2"></i>Soru Sor
-        </a>
-    {% endif %}
+                                {% if item.user.id != request.user.id %}
+                                    <a href="{% url 'send_message' item.user.id %}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="far fa-comment-dots me-2"></i>Soru Sor
+                                    </a>
+                                {% endif %}
 
-    <a href="{% url 'request_session' item.id %}" class="btn btn-primary fw-bold text-white">
-        <i class="fas fa-hand-pointer me-2"></i>Ders Talep Et
-    </a>
-</div>
+                                <a href="{% url 'request_session' item.id %}" class="btn btn-primary fw-bold text-white">
+                                    <i class="fas fa-hand-pointer me-2"></i>Ders Talep Et
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

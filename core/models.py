@@ -72,6 +72,21 @@ class UserSkill(models.Model):
     # Admin onayı gerekiyor (Varsayılan: Onaysız)
     is_approved = models.BooleanField(default=False, verbose_name="Onaylandı mı?")
 
+    LOCATION_CHOICES = [
+        ('online', '🌐 Online (Zoom / Google Meet)'),
+        ('tutor_home', '🏠 Kendi Evimde'),
+        ('student_home', '🎒 Öğrencinin Evinde'),
+        ('campus', '🏫 Kampüs / Ortak Alan'),
+    ]
+    
+    # default='online' dedik ki eski kayıtlar bozulmasın
+    location = models.CharField(
+        max_length=20, 
+        choices=LOCATION_CHOICES, 
+        default='online', 
+        verbose_name="Dersin İşleneceği Yer"
+    )
+
     def __str__(self):
         return f"{self.user.username} - {self.skill.name}"
 

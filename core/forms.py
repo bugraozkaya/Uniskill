@@ -84,11 +84,15 @@ class MesajFormu(forms.ModelForm):
 
 
 
+# core/forms.py
+
 class UserSkillForm(forms.ModelForm):
     class Meta:
         model = UserSkill
-        fields = ['skill', 'certificate'] # Kullanıcı sadece yeteneği ve belgeyi görür
+        # Fields listesine 'location'ı eklemeyi UNUTMA!
+        fields = ['skill', 'location', 'certificate'] 
         widgets = {
             'skill': forms.Select(attrs={'class': 'form-select'}),
+            'location': forms.Select(attrs={'class': 'form-select'}), # <-- Yeni Stil
             'certificate': forms.FileInput(attrs={'class': 'form-control'})
         }
