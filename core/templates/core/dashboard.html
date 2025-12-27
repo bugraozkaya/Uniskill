@@ -207,9 +207,17 @@
                     {% elif session.status == 'approved' %}
                         
                         {% if session.skill.location == 'online' or not session.skill.location %}
-                            <a href="{% url 'meeting_room' session.id %}" class="btn btn-sm btn-primary text-white mb-1 mb-md-0" target="_blank">
-                                <i class="fas fa-video me-1"></i>Katıl
-                            </a>
+                            
+                            {% if not session.is_expired %}
+                                <a href="{% url 'meeting_room' session.id %}" class="btn btn-sm btn-primary text-white mb-1 mb-md-0" target="_blank">
+                                    <i class="fas fa-video me-1"></i>Katıl
+                                </a>
+                            {% else %}
+                                <button class="btn btn-sm btn-secondary mb-1 mb-md-0" disabled title="Bu dersin süresi doldu">
+                                    <i class="fas fa-clock me-1"></i>Süre Doldu
+                                </button>
+                            {% endif %}
+
                         {% endif %}
 
                         <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success" onclick="return confirm('Bu dersin tamamlandığını onaylıyor musunuz?')">

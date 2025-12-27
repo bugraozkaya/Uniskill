@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
+from datetime import timedelta
+from django.utils import timezone
 
 # 1. USER MANAGEMENT (Kullanıcı ve Güvenlik)
 class User(AbstractUser):
@@ -121,6 +123,12 @@ class Session(models.Model):
     
     def __str__(self):
         return f"{self.student.username} -> {self.tutor.username} ({self.skill.name})"
+    @property
+    def is_expired(self):
+        # Bitiş Zamanı = Başlangıç Zamanı + Süre (Saat)
+        end_time = self.date + timedelta(hours=self.duration)
+        # Şu anki zaman, bitiş zamanını geçti mi?
+        return timezone.now() > end_time
     
     
     

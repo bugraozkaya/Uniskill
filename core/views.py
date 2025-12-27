@@ -469,6 +469,9 @@ def meeting_room(request, session_id):
 
     # Oda ismini benzersiz yapıyoruz
     room_name = f"uniskill_session_{session.id}"
+    if session.is_expired:
+        messages.error(request, "Bu dersin süresi dolduğu için katılamazsınız.")
+        return redirect('dashboard')
     
     context = {
         'room_name': room_name,
