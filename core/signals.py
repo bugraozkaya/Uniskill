@@ -1,26 +1,35 @@
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from .models import User
+from .models import Profile  # User yerine Profile modelini çağırıyoruz
 
-@receiver(pre_save, sender=User)
+@receiver(pre_save, sender=Profile)  # DİKKAT: Artık Profile tablosunu dinliyoruz
 def reward_referral(sender, instance, **kwargs):
-    # Eğer kullanıcı veritabanında yeni değilse (güncelleniyorsa)
+    # Eğer bu yeni bir kayıt değilse (güncelleme yapılıyorsa)
     if instance.pk:
         try:
-            old_user = User.objects.get(pk=instance.pk)
+            # Veritabanındaki eski halini çekiyoruz
+            old_profile = Profile.objects.get(pk=instance.pk)
             
-            # KURAL: Statü 'pending' den 'active' e geçiyorsa VE bir davet eden varsa
-            if old_user.status == 'pending' and instance.status == 'active' and instance.invited_by:
+            # KURAL: Eskiden 'active' DEĞİLSE ve şimdi 'active' OLUYORSA
+            if old_profile.status != 'active' and instance.status == 'active':
                 
-                # 1. Yeni kullanıcıya hediye
-                instance.balance += 1
+                # Bu profilin bağlı olduğu kullanıcıyı al
+                user = instance.user
                 
-                # 2. Davet edene hediye
-                inviter = instance.invited_by
-                inviter.balance += 1
-                inviter.save()
-                
-                print(f"REFERANS KAZANCI: {instance.username} ve {inviter.username} +1 saat kazandı!")
-                
-        except User.DoesNotExist:
+                # Bu kullanıcıyı davet eden biri var mı?
+                if user.invited_by:
+                    # 1. Yeni üyeye (şu anki profile) +1 Saat ekle
+                    instance.balance += 1
+                    
+                    # 2. Davet edeni bul
+                    inviter = user.invited_by
+                    
+                    # Davet edenin profili var mı diye kontrol et (Hata almamak için)
+                    if hasattr(inviter, 'profile'):
+                        inviter.profile.balance += 1
+                        inviter.profile.save() # Davet edeni hemen kaydet
+                        
+                        print(f"✅ REFERANS KAZANCI: {inviter.username} ve {user.username} +1 saat kazandı!")
+                        
+        except Profile.DoesNotExist:
             pass

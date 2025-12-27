@@ -172,7 +172,7 @@ class Profile(models.Model):
     )
     referral_code = models.CharField(max_length=10, blank=True, null=True, unique=True)
     used_referral = models.CharField(max_length=10, blank=True, null=True)
-
+    is_rewarded = models.BooleanField(default=False, verbose_name="Referans Ödülü Verildi mi?")
     def __str__(self):
         return f"{self.user.username} Profili"
 
