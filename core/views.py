@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -90,27 +91,31 @@ def dashboard(request):
     
     return render(request, 'core/dashboard.html', context)
 
+# core/views.py
+
 def register(request):
     if request.method == 'POST':
         form = OgrenciKayitFormu(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
+            # 1. Create the new user
+            user = form.save()
             
-            # --- REFERANS SİSTEMİ EKLENTİSİ ---
-            ref_code = form.cleaned_data.get('referral_code')
-            if ref_code:
-                # Davet eden kullanıcıyı bul ve kaydet
-                inviter = User.objects.get(username=ref_code)
-                user.invited_by = inviter
-            # ----------------------------------
+            # 2. Check if a referral code was entered
+            referral_code = form.cleaned_data.get('referral_code')
             
-            user.save()
-            login(request, user)
-            return redirect('dashboard')
+            if referral_code:
+                # CRITICAL STEP: Save the code to the user's profile
+                # This ensures the admin can see it later during approval
+                user.profile.used_referral = referral_code
+                user.profile.save()
+            
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Account created for {username}! Please wait for admin approval.')
+            return redirect('login')
     else:
         form = OgrenciKayitFormu()
     return render(request, 'core/register.html', {'form': form})
-
+    
 # ÇIKIŞ YAPMA FONKSİYONU
 def logout_view(request):
     logout(request)
@@ -214,14 +219,43 @@ def request_session(request, skill_id):
 
 @login_required
 def complete_session(request, session_id):
-    # Sadece dersin Hocası veya Öğrencisi dersi "Tamamlandı" işaretleyebilir
     session = get_object_or_404(Session, id=session_id)
-    
-    if request.user == session.student or request.user == session.tutor:
+
+    # Security check: Only the student can complete the session
+    if request.user != session.student:
+        messages.error(request, "You are not authorized to complete this session.")
+        return redirect('dashboard')
+
+    if session.status != 'approved':
+        messages.error(request, "Only active sessions can be completed.")
+        return redirect('dashboard')
+
+    # --- BALANCE TRANSFER LOGIC START ---
+    # Use database transaction to ensure safety
+    with transaction.atomic():
+        # 1. Update session status
         session.status = 'completed'
         session.save()
-        messages.success(request, "Ders tamamlandı olarak işaretlendi.")
-    
+
+        # 2. Get profiles
+        student_profile = session.student.profile
+        tutor_profile = session.tutor.profile
+
+        # 3. Transfer Balance (Subtract from student, Add to tutor)
+        # We assume validation was done at booking, but safe to check again
+        if student_profile.balance >= session.duration:
+            student_profile.balance -= session.duration
+            tutor_profile.balance += session.duration
+            
+            student_profile.save()
+            tutor_profile.save()
+            
+            messages.success(request, f"Session completed! {session.duration} hours transferred to the tutor.")
+        else:
+            # If student somehow has negative balance (edge case)
+            messages.warning(request, "Session marked completed, but student had insufficient balance for transfer.")
+    # --- BALANCE TRANSFER LOGIC END ---
+
     return redirect('dashboard')
 
 @login_required

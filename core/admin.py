@@ -1,12 +1,52 @@
 from django.contrib import admin
 from .models import User, Profile, Skill, UserSkill, Session, Review, Message
 
+from django.contrib.auth.models import User # <--- MAKE SURE TO IMPORT THIS
+
+
 # --- 1. KULLANICI & PROFİL YÖNETİMİ ---
 
-@admin.action(description='Seçili Profilleri ONAYLA (Aktif Yap)')
+# core/admin.py
+
+# core/admin.py
+
+
+@admin.action(description='Approve Selected Profiles (Activate & Give Referral Bonus)')
 def approve_profiles(modeladmin, request, queryset):
-    queryset.update(status='active')
-    modeladmin.message_user(request, "Seçilen profiller başarıyla onaylandı.")
+    count = 0
+    for profile in queryset:
+        # Only process if the user is NOT already active
+        if profile.status != 'active':
+            profile.status = 'active'
+            
+            # --- REFERRAL BONUS LOGIC ---
+            if profile.used_referral:
+                try:
+                    # Logic: The referral code IS the username of the referrer.
+                    # We search for the User with that username.
+                    referrer_user = User.objects.get(username=profile.used_referral)
+                    referrer_profile = referrer_user.profile
+                    
+                    # 1. Add +1 Hour to the Referrer (Owner of the code)
+                    referrer_profile.balance += 1
+                    referrer_profile.save()
+
+                    # 2. Add +1 Hour to the New User (The Referee)
+                    # New balance will be 3 (default) + 1 (bonus) = 4
+                    profile.balance += 1
+                    
+                except User.DoesNotExist:
+                    # If the username entered as a code does not exist
+                    pass 
+                except Exception as e:
+                    # Log other errors silently
+                    print(f"Error in referral system: {e}")
+            # ---------------------------
+
+            profile.save()
+            count += 1
+            
+    modeladmin.message_user(request, f"{count} profiles successfully activated.")
 
 @admin.action(description='Seçili Profilleri ASKIYA AL')
 def suspend_profiles(modeladmin, request, queryset):
