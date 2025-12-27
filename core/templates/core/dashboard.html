@@ -40,39 +40,67 @@
         
         <div class="row">
             <div class="col-md-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body text-center">
+                <div class="card shadow-sm border-0 overflow-hidden h-100">
+                    <div class="bg-primary" style="height: 80px;"></div>
+                    
+                    <div class="card-body text-center" style="margin-top: -50px;">
                         <div class="mb-3">
-                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                <span class="fs-1 fw-bold text-primary">{{ user.first_name|first|upper }}</span>
+                            <div class="bg-white rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center p-1" style="width: 100px; height: 100px;">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center w-100 h-100 shadow-inner">
+                                    <span class="fs-2 fw-bold">{{ user.first_name|first|upper }}</span>
+                                </div>
                             </div>
                         </div>
-                        <h4 class="card-title">{{ user.get_full_name|default:user.username }}</h4>
-                        <p class="text-muted mb-1">{{ profile.department|default:"Bölüm Belirtilmedi" }}</p>
-                        
-                        {% if user.profile.status == 'active' %}
-                            <span class="badge bg-success rounded-pill px-3">Onaylı Hesap</span>
-                        {% else %}
-                            <span class="badge bg-warning text-dark rounded-pill px-3">Onay Bekliyor</span>
-                        {% endif %}
-                        <div class="d-grid gap-2 mb-3">
-                            <a href="{% url 'edit_profile' %}" class="btn btn-sm btn-outline-primary">
+
+                        <h4 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                        <p class="text-muted small mb-3">
+                            <i class="fas fa-university me-1"></i> {{ profile.department|default:"Bölüm Belirtilmedi" }}
+                        </p>
+
+                        <div class="mb-4">
+                            {% if user.profile.status == 'active' %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
+                                    <i class="fas fa-check-circle me-1"></i> Onaylı Hesap
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2">
+                                    <i class="fas fa-clock me-1"></i> Onay Bekliyor
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 mb-4">
+                            <a href="{% url 'edit_profile' %}" class="btn btn-primary btn-sm rounded-pill shadow-sm">
                                 <i class="fas fa-user-edit me-1"></i> Profili Düzenle
                             </a>
                         </div>
 
-                        <div class="mt-4 pt-3 border-top text-start">
-                            <small class="text-muted d-block mb-1 text-center">Davet Kodun</small>
-                            <div class="bg-light border rounded p-2 d-flex justify-content-between align-items-center">
-                                <span class="fw-bold text-primary font-monospace mx-auto fs-5">{{ user.username }}</span>
+                        <hr class="text-muted opacity-25">
+
+                        <div class="text-start mt-4">
+                            <label class="small fw-bold text-uppercase text-muted mb-2 d-block text-center">Referans Kodun</label>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control form-control-sm text-center fw-bold bg-light border-0 font-monospace" value="{{ user.username }}" readonly id="referralCode">
+                                <button class="btn btn-outline-primary btn-sm" type="button" onclick="copyCode()" title="Kodu Kopyala">
+                                    <i class="far fa-copy"></i>
+                                </button>
                             </div>
-                            <small class="text-muted d-block mt-2 text-center" style="font-size: 0.75rem;">
-                                Arkadaşın bu kodla üye olup onaylandığında ikiniz de <strong class="text-success">+1 Saat</strong> kazanırsınız!
-                            </small>
+                            <div class="alert alert-info py-2 px-3 border-0 rounded-3 mb-0" style="font-size: 0.75rem;">
+                                <i class="fas fa-gift me-1"></i> Arkadaşını davet et, <strong>+1 Saat</strong> kazan!
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <script>
+            function copyCode() {
+                var copyText = document.getElementById("referralCode");
+                copyText.select();
+                document.execCommand("copy");
+                alert("Referans kodu kopyalandı: " + copyText.value);
+            }
+            </script>
 
             <div class="col-md-8">
                 <div class="card shadow-sm border-0 bg-white mb-4">
