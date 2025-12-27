@@ -38,56 +38,49 @@ from .models import (
 # Ana Sayfa (Dashboard)
 # core/views.py içinde dashboard fonksiyonunun YENİ HALİ
 
+# core/views.py
+
 @login_required
 def dashboard(request):
     # --- (İsteğe Bağlı) ZORLA DÜZELTME KODU ---
-    # Eğer "Online" butonu hala gelmiyorsa bu satırı aktif bırak.
-    # Sorun çözüldüyse bu satırı silebilirsin.
-    UserSkill.objects.all().update(location='online') 
+    # Konum verisi boş olanları 'online' yapar. Sorun yoksa silebilirsin.
+    UserSkill.objects.filter(location__isnull=True).update(location='online') 
     # -------------------------------------------------------
 
+    # Profil yoksa oluştur (Hata almamak için)
     profile, created = Profile.objects.get_or_create(user=request.user)
     
     # 1. Kullanıcının dahil olduğu BÜTÜN dersleri çekiyoruz (Tarihe göre sıralı)
-    # (Burada now/zaman filtresi yapmıyoruz, hepsini alıp aşağıda ayıklayacağız)
     all_sessions = Session.objects.filter(
-        models.Q(student=request.user) | models.Q(tutor=request.user)
+        Q(student=request.user) | Q(tutor=request.user)
     ).order_by('date')
 
-    # 2. Dersleri 'Aktif' ve 'Geçmiş' diye Python ile ayırıyoruz
-    my_sessions = []   # Yaklaşan veya Şu An Devam Edenler (2 saatlik ders bitmediyse buraya)
+    # 2. Dersleri 'Aktif' ve 'Geçmiş' diye ayırıyoruz
+    my_sessions = []   # Yaklaşan veya Şu An Devam Edenler
     past_sessions = [] # Süresi Tamamen Bitmiş Olanlar
 
     for session in all_sessions:
-        if session.status == 'cancelled':
-            # İptal edilenleri direkt geçmişe atalım
+        # İptal edildiyse veya Tamamlandıysa -> Geçmişe at
+        if session.status in ['cancelled', 'completed']:
             past_sessions.append(session)
+        # Modeldeki is_expired fonksiyonu "Süre bitti mi?" diye bakar.
         elif session.is_expired:
-            # Modeldeki is_expired fonksiyonu "Süre bitti mi?" diye bakar.
-            # Bitti ise -> Geçmiş Listesine
             past_sessions.append(session)
         else:
-            # Süresi dolmamışsa (veya şu an işleniyorsa) -> Aktif Listesine
+            # Süresi dolmamışsa ve iptal/tamamlanmadıysa -> Aktif Listesine
             my_sessions.append(session)
     
-    # Listeyi ters çevirelim ki geçmiş derslerde en son biten en üstte dursun
+    # Geçmiş derslerde en son biten en üstte dursun diye ters çeviriyoruz
     past_sessions.reverse() 
 
     # 3. Öğretebileceğim yetenekler listesi
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # Bakiye Hesaplama (Güvenli Erişim)
-    try:
-        balance = request.user.profile.balance
-    except:
-        balance = 0
-
     context = {
-        'my_sessions': my_sessions,     # Artık akıllı filtrelenmiş liste
-        'past_sessions': past_sessions, # Sadece süresi bitenler
+        'my_sessions': my_sessions,     # Gelecek Dersler (HTML'de upcoming_sessions yerine bunu kullanacağız veya html'i güncelleyeceğiz)
+        'past_sessions': past_sessions, # Geçmiş Dersler
         'my_skills': my_skills,
-        'bakiye': balance,
-        'bolum': 'Bilgisayar Mühendisliği' 
+        'profile': profile,             # Bakiye bilgisi profile içinde var
     }
     
     return render(request, 'core/dashboard.html', context)

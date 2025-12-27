@@ -5,6 +5,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
+
 
 # 1. USER MANAGEMENT (Kullanıcı ve Güvenlik)
 class User(AbstractUser):
@@ -118,6 +120,14 @@ class Session(models.Model):
     
     @property
     def is_expired(self):
+        end_time = self.date + timedelta(hours=self.duration)
+        return timezone.now() > end_time
+    @property
+    def is_expired(self):
+        """Dersin süresi dolmuş mu kontrol eder."""
+        if not self.date:
+            return False
+        # Bitiş zamanı = Ders Başlangıcı + Süresi (Saat)
         end_time = self.date + timedelta(hours=self.duration)
         return timezone.now() > end_time
 

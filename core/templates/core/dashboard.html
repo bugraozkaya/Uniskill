@@ -30,10 +30,6 @@
                             <i class="fas fa-sign-out-alt"></i> Çıkış
                         </a>
                     </div>
-                {% else %}
-                    <a href="{% url 'login' %}" class="btn btn-light btn-sm fw-bold shadow-sm">
-                        <i class="fas fa-sign-in-alt me-1"></i> Giriş Yap
-                    </a>
                 {% endif %}
             </div>
         </div>
@@ -47,17 +43,17 @@
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-body text-center">
                         <div class="mb-3">
-                            <i class="fas fa-user-circle fa-5x text-secondary"></i>
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <span class="fs-1 fw-bold text-primary">{{ user.first_name|first|upper }}</span>
+                            </div>
                         </div>
-                        <h4 class="card-title">{{ user.username }}</h4>
-                        <p class="text-muted mb-1">{{ bolum|default:"Bölüm Belirtilmedi" }}</p>
+                        <h4 class="card-title">{{ user.get_full_name|default:user.username }}</h4>
+                        <p class="text-muted mb-1">{{ profile.department|default:"Bölüm Belirtilmedi" }}</p>
                         
                         {% if user.profile.status == 'active' %}
                             <span class="badge bg-success rounded-pill px-3">Onaylı Hesap</span>
-                        {% elif user.status == 'pending' %}
-                            <span class="badge bg-warning text-dark rounded-pill px-3">Onay Bekliyor</span>
                         {% else %}
-                            <span class="badge bg-danger rounded-pill px-3">Yasaklı</span>
+                            <span class="badge bg-warning text-dark rounded-pill px-3">Onay Bekliyor</span>
                         {% endif %}
 
                         <div class="mt-4 pt-3 border-top text-start">
@@ -69,7 +65,7 @@
                                 Arkadaşın bu kodla üye olup onaylandığında ikiniz de <strong class="text-success">+1 Saat</strong> kazanırsınız!
                             </small>
                         </div>
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -80,7 +76,7 @@
                             <div>
                                 <h5 class="text-muted">Mevcut Zaman Bakiyen</h5>
                                 <h1 class="display-4 fw-bold text-primary">
-                                    {{ bakiye }} <span class="fs-4 text-muted">Saat</span>
+                                    {{ profile.balance|default:"0" }} <span class="fs-4 text-muted">Saat</span>
                                 </h1>
                             </div>
                             <div class="text-end">
@@ -129,113 +125,85 @@
                                     <th>Rolüm</th>
                                     <th>Kiminle</th>
                                     <th>Tarih & Saat</th>
-                                    <th>Süre</th>
                                     <th>Durum</th>
                                     <th>İşlem</th>
                                 </tr>
                             </thead>
                             <tbody>
-            {% for session in my_sessions %}
-            <tr>
-                <td class="fw-bold text-primary">
-                    {{ session.skill.name }}
-                    {% if session.skill.location == 'online' or not session.skill.location %}
-                        <i class="fas fa-video text-muted ms-1" title="Online Ders"></i>
-                    {% endif %}
-                </td>
+                            {% for session in my_sessions %}
+                            <tr>
+                                <td class="fw-bold text-primary">
+                                    {{ session.skill.name }}
+                                    {% if session.skill.location == 'online' %}<i class="fas fa-video text-muted ms-1"></i>{% endif %}
+                                </td>
 
-                <td>
-                    {% if session.student == user %}
-                        <span class="badge bg-info text-dark">Öğrenciyim</span>
-                    {% else %}
-                        <span class="badge bg-warning text-dark">Hocayım</span>
-                    {% endif %}
-                </td>
+                                <td>
+                                    {% if session.student == user %}
+                                        <span class="badge bg-info text-dark">Öğrenciyim</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Hocayım</span>
+                                    {% endif %}
+                                </td>
 
-                <td>
-                    {% if session.student == user %}
-                        <i class="fas fa-chalkboard-teacher text-muted me-1"></i> 
-                        {{ session.tutor.get_full_name|default:session.tutor.username }}
-                    {% else %}
-                        <i class="fas fa-user-graduate text-muted me-1"></i> 
-                        {{ session.student.get_full_name|default:session.student.username }}
-                    {% endif %}
-                </td>
+                                <td>
+                                    {% if session.student == user %}
+                                        <i class="fas fa-chalkboard-teacher text-muted me-1"></i> 
+                                        {{ session.tutor.first_name }} {{ session.tutor.last_name }}
+                                    {% else %}
+                                        <i class="fas fa-user-graduate text-muted me-1"></i> 
+                                        {{ session.student.first_name }} {{ session.student.last_name }}
+                                    {% endif %}
+                                </td>
 
-                <td>{{ session.date|date:"d M Y, H:i" }}</td>
+                                <td>{{ session.date|date:"d M Y, H:i" }}</td>
 
-                <td>{{ session.duration }} Saat</td>
+                                <td>
+                                    {% if session.status == 'pending' %}
+                                        <span class="badge bg-warning text-dark">Admin Onayı Bekliyor</span>
+                                    {% elif session.status == 'pending_tutor' %}
+                                        <span class="badge bg-info text-dark">Hoca Onayı Bekliyor</span>
+                                    {% elif session.status == 'approved' %}
+                                        <span class="badge bg-success">Onaylı / Aktif</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ session.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
 
-                <td>
-                    {% if session.status == 'pending' %}
-                        <span class="badge bg-warning text-dark">
-                            <i class="fas fa-user-shield me-1"></i>Admin Onayı Bekliyor
-                        </span>
-                    {% elif session.status == 'pending_tutor' %}
-                        <span class="badge bg-info text-dark">
-                            <i class="fas fa-user-tie me-1"></i>Hoca Onayı Bekliyor
-                        </span>
-                    {% elif session.status == 'approved' %}
-                        <span class="badge bg-success">
-                            <i class="fas fa-check-circle me-1"></i>Aktif / Onaylı
-                        </span>
-                    {% elif session.status == 'cancelled' %}
-                        <span class="badge bg-danger">İptal Edildi</span>
-                    {% else %}
-                        <span class="badge bg-secondary">{{ session.get_status_display }}</span>
-                    {% endif %}
-                </td>
+                                <td>
+                                    {% if session.status == 'pending' %}
+                                        <a href="{% url 'cancel_session' session.id %}" class="btn btn-sm btn-danger" onclick="return confirm('İptal etmek istiyor musunuz?')">
+                                            <i class="fas fa-times me-1"></i>İptal
+                                        </a>
 
-                <td>
-                    {% if session.status == 'pending' %}
-                        <a href="{% url 'cancel_session' session.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Ders talebini iptal etmek istiyor musunuz?')">
-                            <i class="fas fa-times me-1"></i>İptal Et
-                        </a>
+                                    {% elif session.status == 'pending_tutor' %}
+                                        {% if session.tutor == user %}
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'approve_session_tutor' session.id %}" class="btn btn-sm btn-success"><i class="fas fa-check"></i></a>
+                                                <a href="{% url 'reject_session_tutor' session.id %}" class="btn btn-sm btn-danger"><i class="fas fa-times"></i></a>
+                                            </div>
+                                        {% else %}
+                                            <a href="{% url 'cancel_session' session.id %}" class="btn btn-sm btn-danger"><i class="fas fa-times"></i> İptal</a>
+                                        {% endif %}
 
-                    {% elif session.status == 'pending_tutor' %}
-                        {% if session.tutor == user %}
-                            <div class="btn-group" role="group">
-                                <a href="{% url 'approve_session_tutor' session.id %}" class="btn btn-sm btn-success" title="Kabul Et"><i class="fas fa-check"></i></a>
-                                <a href="{% url 'reject_session_tutor' session.id %}" class="btn btn-sm btn-danger" title="Reddet"><i class="fas fa-times"></i></a>
-                            </div>
-                        {% else %}
-                            <a href="{% url 'cancel_session' session.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Ders talebini iptal etmek istiyor musunuz?')">
-                                <i class="fas fa-times me-1"></i>İptal Et
-                            </a>
-                        {% endif %}
-
-                    {% elif session.status == 'approved' %}
-                        
-                        {% if session.skill.location == 'online' or not session.skill.location %}
-                            
-                            {% if not session.is_expired %}
-                                <a href="{% url 'meeting_room' session.id %}" class="btn btn-sm btn-primary text-white mb-1 mb-md-0" target="_blank">
-                                    <i class="fas fa-video me-1"></i>Katıl
-                                </a>
-                            {% else %}
-                                <button class="btn btn-sm btn-secondary mb-1 mb-md-0" disabled title="Bu dersin süresi doldu">
-                                    <i class="fas fa-clock me-1"></i>Süre Doldu
-                                </button>
-                            {% endif %}
-
-                        {% endif %}
-
-                        <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success" onclick="return confirm('Bu dersin tamamlandığını onaylıyor musunuz?')">
-                            <i class="fas fa-flag-checkered me-1"></i>Bitir
-                        </a>
-
-                        {% else %}
-                        <small class="text-muted">-</small>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+                                    {% elif session.status == 'approved' %}
+                                        {% if session.skill.location == 'online' %}
+                                            <a href="{% url 'meeting_room' session.id %}" class="btn btn-sm btn-primary text-white" target="_blank">
+                                                <i class="fas fa-video me-1"></i>Katıl
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success ms-1" onclick="return confirm('Dersi bitiriyor musunuz?')">
+                                            <i class="fas fa-flag-checkered"></i> Bitir
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
                         </table>
                     </div>
                 {% else %}
                     <div class="alert alert-light border text-center text-muted m-0">
-                        <i class="fas fa-calendar-times me-2"></i>Henüz planlanmış bir dersiniz yok.
+                        <i class="fas fa-calendar-check me-2"></i>Şu an aktif veya bekleyen bir dersiniz yok.
                     </div>
                 {% endif %}
             </div>
@@ -252,49 +220,54 @@
                 {% if past_sessions %}
                     <div class="table-responsive">
                         <table class="table align-middle">
-                            <thead>
+                            <thead class="table-light">
                                 <tr>
                                     <th>Ders</th>
-                                    <th>Eğitmen</th>
+                                    <th>Rolüm</th>
+                                    <th>Kiminle</th>
                                     <th>Tarih</th>
                                     <th>Durum</th>
-                                    <th>İşlem</th>
+                                    <th class="text-end">İşlem</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for session in past_sessions %}
                                 <tr>
-                                    <td>{{ session.skill.name }}</td>
-                                    <td>{{ session.tutor.get_full_name|default:session.tutor.username }}</td>
-                                    <td>{{ session.date|date:"d M Y" }}</td>
+                                    <td class="fw-bold">{{ session.skill.name }}</td>
                                     
                                     <td>
-                                        {% if session.status == 'completed' %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check me-1"></i>Tamamlandı
-                                            </span>
-                                        {% elif session.status == 'cancelled' %}
-                                            <span class="badge bg-danger">İptal Edildi</span>
+                                        {% if session.student == user %}
+                                            <span class="badge bg-secondary">Öğrenciydim</span>
                                         {% else %}
-                                            <span class="badge bg-secondary" title="Süresi doldu fakat işlem yapılmadı">
-                                                <i class="fas fa-exclamation-circle me-1"></i>Tamamlanmadı
-                                            </span>
+                                            <span class="badge bg-secondary">Hocaydım</span>
                                         {% endif %}
                                     </td>
 
                                     <td>
+                                        {% if session.student == user %}
+                                            {{ session.tutor.first_name }} {{ session.tutor.last_name }}
+                                        {% else %}
+                                            {{ session.student.first_name }} {{ session.student.last_name }}
+                                        {% endif %}
+                                    </td>
+
+                                    <td>{{ session.date|date:"d M Y" }}</td>
+                                    
+                                    <td>
                                         {% if session.status == 'completed' %}
-                                            {% if session.has_review %}
-                                                <span class="text-success fw-bold small">
-                                                    <i class="fas fa-check-circle"></i> Değerlendirildi
-                                                </span>
-                                            {% elif session.student.id == user.id %}
-                                                <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
-                                                    <i class="fas fa-star"></i> Puan Ver
-                                                </a>
-                                            {% else %}
-                                                <small class="text-muted">-</small>
-                                            {% endif %}
+                                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Tamamlandı</span>
+                                        {% elif session.status == 'cancelled' %}
+                                            <span class="badge bg-danger">İptal Edildi</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary" title="Süresi doldu">Süre Doldu</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-end">
+                                        {% if session.status == 'completed' and session.student == user %}
+                                            <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
+                                                <i class="fas fa-star me-1"></i>Puan Ver
+                                            </a>
                                         {% else %}
                                             <small class="text-muted">-</small>
                                         {% endif %}
@@ -305,7 +278,7 @@
                         </table>
                     </div>
                 {% else %}
-                    <p class="text-muted text-center py-3">Henüz tamamlanmış bir dersiniz yok.</p>
+                    <p class="text-muted text-center py-3">Henüz geçmiş bir ders kaydı yok.</p>
                 {% endif %}
             </div>
         </div>
@@ -327,37 +300,20 @@
                                 </div>
                                 <div>
                                     <h6 class="mb-0 fw-bold">{{ item.skill.name }}</h6>
-                                    <small class="text-muted">{{ item.skill.category.name }}</small>
-                                    {% if item.skill.description %}
-                                        <br><small class="text-muted fst-italic" style="font-size: 0.8rem;">"{{ item.skill.description|truncatechars:50 }}"</small>
-                                    {% endif %}
-                                    
-                                    {% if item.certificate %}
-                                        <div class="mt-1">
-                                            <a href="{{ item.certificate.url }}" target="_blank" class="text-decoration-none small text-info">
-                                                <i class="fas fa-file-alt me-1"></i>Belgeyi Gör
-                                            </a>
-                                        </div>
-                                    {% endif %}
+                                    <small class="text-muted">{{ item.skill.get_category_display }}</small>
                                 </div>
                             </div>
-
-                            {% if item.is_approved %}
-                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">
-                                    <i class="fas fa-check-circle me-1"></i>Onaylı / Aktif
-                                </span>
-                            {% else %}
-                                <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">
-                                    <i class="fas fa-hourglass-half me-1"></i>İnceleniyor
-                                </span>
-                            {% endif %}
                             
+                            {% if item.is_approved %}
+                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">Aktif</span>
+                            {% else %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">Onay Bekliyor</span>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                 {% else %}
                     <div class="text-center py-4 text-muted">
-                        <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
                         <p>Henüz bir yetenek eklemedin.</p>
                         <a href="{% url 'add_skill' %}" class="btn btn-sm btn-outline-primary">Hemen Ekle</a>
                     </div>
@@ -365,15 +321,6 @@
             </div>
         </div>
 
-        {% else %}
-        <div class="text-center mt-5 pt-5">
-            <h1 class="display-5 fw-bold text-dark">UniSkill'e Hoşgeldin</h1>
-            <p class="lead text-muted">Üniversite içi yetenek takas platformu.</p>
-            <div class="d-flex justify-content-center gap-3 mt-4">
-                <a href="{% url 'login' %}" class="btn btn-primary btn-lg px-5 shadow">Giriş Yap</a>
-                <a href="{% url 'register' %}" class="btn btn-outline-primary btn-lg px-5 shadow-sm">Kayıt Ol</a>
-            </div>
-        </div>
         {% endif %}
     </div>
 
