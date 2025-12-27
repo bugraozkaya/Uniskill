@@ -209,13 +209,42 @@ def request_session(request, skill_id):
 
 @login_required
 def complete_session(request, session_id):
-    # Sadece dersin Hocası veya Öğrencisi dersi "Tamamlandı" işaretleyebilir
     session = get_object_or_404(Session, id=session_id)
-    
-    if request.user == session.student or request.user == session.tutor:
+
+    # 1. GÜVENLİK: Sadece dersin öğrencisi veya hocası bitirebilir
+    if request.user != session.student and request.user != session.tutor:
+        messages.error(request, "Bu işlemi yapmaya yetkiniz yok.")
+        return redirect('dashboard')
+
+    # 2. HATA ÖNLEME: Ders zaten bitmişse tekrar işlem yapma (Yoksa bakiye sürekli düşer!)
+    if session.status == 'completed':
+        messages.warning(request, "Bu ders zaten tamamlanmış, işlem tekrar yapılamaz.")
+        return redirect('dashboard')
+
+    # 3. BAKİYE TRANSFERİ (MATEMATİK KISMI)
+    try:
+        student_profile = session.student.profile
+        tutor_profile = session.tutor.profile
+        
+        # Öğrencinin bakiyesinden ders süresini düş
+        student_profile.balance -= session.duration
+        
+        # Hocanın bakiyesine ders süresini ekle
+        tutor_profile.balance += session.duration
+        
+        # Değişiklikleri kaydet
+        student_profile.save()
+        tutor_profile.save()
+        
+        # Dersin durumunu güncelle
         session.status = 'completed'
         session.save()
-        messages.success(request, "Ders tamamlandı olarak işaretlendi.")
+        
+        messages.success(request, f"Ders tamamlandı! {session.duration} Saat bakiyenizden düşüldü ve hocaya aktarıldı.")
+
+    except Exception as e:
+        # Eğer profil bulunamazsa veya bir hata olursa
+        messages.error(request, "Bakiye güncellenirken bir hata oluştu.")
     
     return redirect('dashboard')
 
