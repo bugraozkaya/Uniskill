@@ -1,7 +1,9 @@
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from .models import Profile  # User yerine Profile modelini çağırıyoruz
-
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from .models import User, Profile
 @receiver(pre_save, sender=Profile)  # DİKKAT: Artık Profile tablosunu dinliyoruz
 def reward_referral(sender, instance, **kwargs):
     # Eğer bu yeni bir kayıt değilse (güncelleme yapılıyorsa)
@@ -33,3 +35,9 @@ def reward_referral(sender, instance, **kwargs):
                         
         except Profile.DoesNotExist:
             pass
+
+@receiver(post_save, sender=User)
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        # Yeni kullanıcı oluşunca profilini ve benzersiz kodunu oluştur
+        Profile.objects.create(user=instance, referral_code=instance.username)

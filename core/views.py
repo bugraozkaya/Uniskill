@@ -103,20 +103,46 @@ def dashboard(request):
 
 from .forms import CustomUserCreationForm # Sadece bunu kullanacağız
 
+from django.db import transaction
+
+from django.db import transaction
+
+from django.db import transaction
+
 def register(request):
     if request.method == 'POST':
-        # SADECE CustomUserCreationForm kullan, diğerini sil!
         form = CustomUserCreationForm(request.POST) 
         if form.is_valid():
-            user = form.save()
-            messages.success(request, 'Hesabınız oluşturuldu! Onay bekleniyor.')
-            return redirect('login')
+            try:
+                # 1. Kullanıcıyı kaydet (Signals burada profili otomatik oluşturur)
+                user = form.save()
+                
+                # 2. HATA ALMAMAK İÇİN: Yeni profil OLUŞTURMA, var olanı GETİR
+                profile = user.profile 
+                profile.department = form.cleaned_data.get('department')
+                
+                # 3. Referans Mantığı: Puanı Ekle
+                ref_code = form.cleaned_data.get('used_referral')
+                if ref_code:
+                    # Kodu paylaşan kişiyi bul
+                    referrer = Profile.objects.filter(referral_code=ref_code.strip()).first()
+                    if referrer:
+                        referrer.balance += 1 # +1 Saat Puan
+                        referrer.save() # Veritabanına kesin yaz
+                        profile.used_referral = ref_code # Kiminle geldiğini kaydet
+                
+                # 4. Profildeki değişiklikleri (bölüm vb.) kaydet
+                profile.save() 
+                
+                messages.success(request, 'Kayıt başarılı! Şimdi giriş yapabilirsiniz.')
+                return redirect('login') # BAŞARILI OLUNCA GİRİŞE YÖNLENDİRİR
+                
+            except Exception as e:
+                # Eğer hala IntegrityError alırsan hatayı burada yakalarız
+                messages.error(request, f"Kayıt sırasında bir sorun oluştu: {e}")
     else:
         form = CustomUserCreationForm()
-    user = user_form.save()
-    profile = user.profile # Profil otomatik oluşuyorsa
-    profile.department = user_form.cleaned_data.get('department')
-    profile.save()
+    
     return render(request, 'core/register.html', {'form': form})
     
 # ÇIKIŞ YAPMA FONKSİYONU
