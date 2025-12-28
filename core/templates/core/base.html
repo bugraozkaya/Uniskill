@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,19 +30,19 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item me-3">
-                        <span class="text-white small">Sivas Bilim ve Teknoloji Üniversitesi</span>
+                        <span class="text-white small">Sivas Science and Technology University</span>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'inbox' %}" class="btn btn-light btn-sm fw-bold text-primary me-2">
-                            <i class="fas fa-envelope me-1"></i>Mesajlar
+                            <i class="fas fa-envelope me-1"></i>Messages
                         </a>
                     </li>
                     <li class="nav-item">
-                        <span class="text-white fw-bold me-2">Merhaba, {{ user.first_name }}</span>
+                        <span class="text-white fw-bold me-2">Hello, {{ user.first_name }}</span>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'logout' %}" class="btn btn-danger btn-sm">
-                            <i class="fas fa-sign-out-alt me-1"></i>Çıkış
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
                         </a>
                     </li>
                 </ul>

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ders Talep Et - UniSkill</title>
+    <title>Request Session - UniSkill</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -18,33 +18,33 @@
 
                 <div class="card shadow border-0">
                     <div class="card-header bg-primary text-white p-4">
-                        <h4 class="mb-0">Ders Talep Formu</h4>
-                        <small>Eğitmen: <strong>{{ target_skill.user.get_full_name|default:target_skill.user.username }}</strong></small>
+                        <h4 class="mb-0">Session Request Form</h4>
+                        <small>Tutor: <strong>{{ skill.user.get_full_name|default:skill.user.username }}</strong></small>
                     </div>
                     <div class="card-body p-5">
-                        <h5 class="text-primary fw-bold">{{ target_skill.skill.name }}</h5>
-                        <p class="text-muted">{{ target_skill.skill.description }}</p>
+                        <h5 class="text-primary fw-bold">{{ skill.skill.name }}</h5>
+                        <p class="text-muted">{{ skill.skill.description }}</p>
                         <hr>
 
                         <form method="post">
                             {% csrf_token %}
                             
                             <div class="mb-3">
-                                <label class="fw-bold mb-1">Tarih ve Saat</label>
+                                <label class="fw-bold mb-1">Date & Time</label>
                                 {{ form.date }}
                             </div>
 
                             <div class="mb-3">
-                                <label class="fw-bold mb-1">Süre (Saat)</label>
+                                <label class="fw-bold mb-1">Duration (Hours)</label>
                                 {{ form.duration }}
-                                <small class="text-muted">Bakiyenizden düşülecek tutar.</small>
+                                <small class="text-muted">Amount to be deducted from your balance.</small>
                             </div>
 
                             <div class="d-flex gap-2 mt-4">
                                 <button type="submit" class="btn btn-success flex-grow-1 py-2 fw-bold">
-                                    Onayla ve Öde
+                                    Confirm & Pay
                                 </button>
-                                <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary py-2">İptal</a>
+                                <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary py-2">Cancel</a>
                             </div>
                         </form>
                     </div>

@@ -1,68 +1,43 @@
 from django.contrib import admin
-from .models import User, Profile, Skill, UserSkill, Session, Review, Message
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User # Standart User
+from .models import Profile, Skill, UserSkill, Session, Review, Message
 
-from django.contrib.auth.models import User # <--- MAKE SURE TO IMPORT THIS
+# ---------------------------------------------------------
+# 1. USER & PROFILE MANAGEMENT
+# ---------------------------------------------------------
 
-
-# --- 1. KULLANICI & PROFİL YÖNETİMİ ---
-
-# core/admin.py
-
-# core/admin.py
-
-
-@admin.action(description='Approve Selected Profiles (Activate & Give Referral Bonus)')
+@admin.action(description='Approve Selected Profiles (Activate)')
 def approve_profiles(modeladmin, request, queryset):
     count = 0
     for profile in queryset:
-        # Only process if the user is NOT already active
         if profile.status != 'active':
             profile.status = 'active'
-            
-            # --- REFERRAL BONUS LOGIC ---
-            if profile.used_referral:
-                try:
-                    # Logic: The referral code IS the username of the referrer.
-                    # We search for the User with that username.
-                    referrer_user = User.objects.get(username=profile.used_referral)
-                    referrer_profile = referrer_user.profile
-                    
-                    # 1. Add +1 Hour to the Referrer (Owner of the code)
-                    referrer_profile.balance += 1
-                    referrer_profile.save()
-
-                    # 2. Add +1 Hour to the New User (The Referee)
-                    # New balance will be 3 (default) + 1 (bonus) = 4
-                    profile.balance += 1
-                    
-                except User.DoesNotExist:
-                    # If the username entered as a code does not exist
-                    pass 
-                except Exception as e:
-                    # Log other errors silently
-                    print(f"Error in referral system: {e}")
-            # ---------------------------
-
-            profile.save()
-            count += 1
-            
+            profile.save() 
+            count += 1     
     modeladmin.message_user(request, f"{count} profiles successfully activated.")
 
-@admin.action(description='Seçili Profilleri ASKIYA AL')
+@admin.action(description='Suspend Selected Profiles')
 def suspend_profiles(modeladmin, request, queryset):
     queryset.update(status='suspended')
+    modeladmin.message_user(request, "Selected profiles suspended.")
 
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'balance', 'status')
+    list_display = ('user', 'balance', 'status', 'is_rewarded')
     list_editable = ('status',)  
-    search_fields = ('user__username', 'user__email')
-    list_filter = ('status',)
+    search_fields = ('user__username', 'user__email', 'referral_code')
+    list_filter = ('status', 'is_rewarded')
     actions = [approve_profiles, suspend_profiles]
 
+# Profile'i kaydediyoruz
 admin.site.register(Profile, ProfileAdmin)
-admin.site.register(User)
 
-# --- 2. YETENEK YÖNETİMİ (Category Yok Artık) ---
+# DİKKAT: User modelini tekrar register ETMİYORUZ.
+# admin.site.register(User, UserAdmin)  <-- BU SATIR SİLİNDİ
+
+# ---------------------------------------------------------
+# 2. SKILL MANAGEMENT
+# ---------------------------------------------------------
 
 @admin.register(Skill)
 class SkillAdmin(admin.ModelAdmin):
@@ -70,24 +45,30 @@ class SkillAdmin(admin.ModelAdmin):
     list_filter = ('category',)
     search_fields = ('name',)
 
-# --- 3. KULLANICI YETENEKLERİ ---
+# ---------------------------------------------------------
+# 3. USER SKILLS (Ads)
+# ---------------------------------------------------------
 
-@admin.action(description='Seçili yetenekleri ONAYLA')
+@admin.action(description='Approve Selected Skills')
 def approve_skills(modeladmin, request, queryset):
     queryset.update(is_approved=True)
+    modeladmin.message_user(request, "Selected skills approved.")
 
 @admin.register(UserSkill)
 class UserSkillAdmin(admin.ModelAdmin):
-    list_display = ('user', 'skill', 'location', 'is_approved', 'certificate')
+    list_display = ('user', 'skill', 'location', 'is_approved')
     list_filter = ('is_approved', 'location')
     search_fields = ('user__username', 'skill__name')
     actions = [approve_skills]
 
-# --- 4. DERS YÖNETİMİ ---
+# ---------------------------------------------------------
+# 4. SESSION MANAGEMENT
+# ---------------------------------------------------------
 
-@admin.action(description='Seçili dersleri HOCAYA GÖNDER (Pending Tutor)')
+@admin.action(description='Approve for Tutor (Set to Pending Tutor)')
 def approve_sessions(modeladmin, request, queryset):
     queryset.update(status='pending_tutor')
+    modeladmin.message_user(request, "Selected sessions sent to tutors for approval.")
 
 @admin.register(Session)
 class SessionAdmin(admin.ModelAdmin):
@@ -96,6 +77,16 @@ class SessionAdmin(admin.ModelAdmin):
     search_fields = ('student__username', 'tutor__username', 'skill__name')
     actions = [approve_sessions]
 
-# --- 5. DİĞERLERİ ---
-admin.site.register(Review)
-admin.site.register(Message)
+# ---------------------------------------------------------
+# 5. OTHERS (Reviews, Messages)
+# ---------------------------------------------------------
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('session', 'rating', 'created_at')
+    list_filter = ('rating',)
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'recipient', 'created_at', 'is_read')
+    list_filter = ('is_read',)

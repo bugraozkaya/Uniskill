@@ -31,14 +31,13 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'core',
+    'core', # Our Main App
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
 ]
 
 MIDDLEWARE = [
@@ -123,16 +122,17 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'core.User'
-# Kullanıcı giriş yapmadan korumalı bir sayfaya girmeye çalışırsa buraya yönlendir:
+
+# Redirect to login page if user tries to access protected page without logging in
 LOGIN_URL = 'login'
 
-# Giriş yaptıktan sonra yönlendirilecek adres (urls.py'daki name='dashboard')
+# Redirect to dashboard after successful login
 LOGIN_REDIRECT_URL = 'dashboard'
 
-# Çıkış yaptıktan sonra yönlendirilecek adres
+# Redirect to login page after logout
 LOGOUT_REDIRECT_URL = 'login'
 
+# Cache settings (Used for Login Throttling)
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -140,8 +140,6 @@ CACHES = {
     }
 }
 
-
-
-# settings.py en altı
+# Media Files (For User Certificates, etc.)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

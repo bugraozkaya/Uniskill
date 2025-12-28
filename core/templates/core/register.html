@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Kayıt Ol - UniSkill</title>
+    <title>Register - UniSkill</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light py-5">
@@ -12,14 +12,15 @@
             <div class="col-md-6">
                 <div class="card shadow border-0">
                     <div class="card-body p-5">
-                        <h3 class="text-center fw-bold text-success mb-4">UniSkill'e Katıl</h3>
+                        <h3 class="text-center fw-bold text-success mb-4">Join UniSkill</h3>
                         
                         <form method="post">
                             {% csrf_token %}
                             {% for field in form %}
                             <div class="mb-3">
                                 <label class="form-label fw-bold">{{ field.label }}</label>
-                                {{ field }} {% if field.help_text %}
+                                {{ field }} 
+                                {% if field.help_text %}
                                 <small class="text-muted">{{ field.help_text }}</small>
                                 {% endif %}
                                 {% for error in field.errors %}
@@ -28,11 +29,11 @@
                             </div>
                             {% endfor %}
                             
-                            <button type="submit" class="btn btn-success w-100 py-2 mt-3">Kayıt Ol</button>
+                            <button type="submit" class="btn btn-success w-100 py-2 mt-3">Register</button>
                         </form>
 
                         <div class="text-center mt-3">
-                            <small>Zaten üye misin? <a href="{% url 'login' %}">Giriş Yap</a></small>
+                            <small>Already a member? <a href="{% url 'login' %}">Login</a></small>
                         </div>
                     </div>
                 </div>
@@ -41,6 +42,7 @@
     </div>
     
     <script>
+        // Add Bootstrap class to Django form inputs automatically
         document.querySelectorAll('input').forEach(input => input.classList.add('form-control'));
     </script>
 </body>

@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.core.cache import cache
 from django.utils.dateparse import parse_datetime
 
-# --- MODELLER ---
+# --- MODELS ---
 from .models import (
     Skill, 
     UserSkill, 
@@ -20,7 +20,7 @@ from .models import (
     CATEGORY_CHOICES
 )
 
-# --- FORMLAR ---
+# --- FORMS ---
 from .forms import (
     CustomUserCreationForm, 
     UserSkillForm, 
@@ -34,7 +34,7 @@ from .forms import (
 User = get_user_model()
 
 # ---------------------------------------------------------
-# 1. KULLANICI İŞLEMLERİ (Giriş, Kayıt, Çıkış, Profil)
+# 1. USER OPERATIONS (Login, Register, Logout, Profile)
 # ---------------------------------------------------------
 
 class CustomLoginView(LoginView):
@@ -57,7 +57,7 @@ class CustomLoginView(LoginView):
             if remaining > 0:
                 context = self.get_context_data()
                 context['wait_time'] = remaining
-                messages.error(request, f"⛔ Çok fazla deneme yaptınız. {remaining} saniye bekleyin.")
+                messages.error(request, f"⛔ Too many attempts. Please wait {remaining} seconds.")
                 return self.render_to_response(context)
         
         return super().get(request, *args, **kwargs)
@@ -82,9 +82,9 @@ class CustomLoginView(LoginView):
             expiry_time = time.time() + 30
             cache.set(f'blocked_{ip}', expiry_time, 30)
             context['wait_time'] = 30 
-            messages.error(self.request, f"⛔ {new_count}. hatalı deneme! 30 saniye engellendiniz.")
+            messages.error(self.request, f"⛔ {new_count} failed attempts! You are blocked for 30 seconds.")
         else:
-            messages.warning(self.request, f"⚠️ Hatalı şifre! ({new_count}. Deneme) - Kalan hakkınız: {remaining}")
+            messages.warning(self.request, f"⚠️ Incorrect password! ({new_count}. Attempt) - Remaining attempts: {remaining}")
             
         return self.render_to_response(context)
 
@@ -93,7 +93,7 @@ class CustomLoginView(LoginView):
         ip = self.get_client_ip(self.request)
 
         if not hasattr(user, 'profile') or user.profile.status != 'active':
-            messages.error(self.request, "Hesabınız henüz Admin tarafından onaylanmadı. Lütfen bekleyiniz.")
+            messages.error(self.request, "Your account has not been approved by the Admin yet. Please wait.")
             return self.render_to_response(self.get_context_data(form=form))
 
         cache.delete(f'login_fail_v2_{ip}') 
@@ -105,28 +105,27 @@ def register(request):
         form = CustomUserCreationForm(request.POST) 
         if form.is_valid():
             try:
-                # 1. Kullanıcıyı SADECE BİR KERE kaydet
+                # 1. Save user ONCE
                 user = form.save()
                 
-                # 2. Profil zaten oluştu (Signals sayesinde), onu getir
-                # get_or_create kullanarak olası hataları önlüyoruz
+                # 2. Get profile (already created by signals)
                 profile, created = Profile.objects.get_or_create(user=user)
                 
-                # 3. Formdan gelen ek bilgileri kaydet
+                # 3. Save extra details
                 profile.department = form.cleaned_data.get('department')
                 
-                # 4. Referans Kodu İşlemi
+                # 4. Referral Code Logic
                 ref_code = form.cleaned_data.get('used_referral')
                 if ref_code:
                     profile.used_referral = ref_code.strip()
                 
                 profile.save() 
                 
-                messages.success(request, 'Kayıt başarılı! Hesabınız admin onayından sonra aktifleşecektir.')
+                messages.success(request, 'Registration successful! Your account will be active after admin approval.')
                 return redirect('login') 
                 
             except Exception as e:
-                messages.error(request, f"Kayıt sırasında bir sorun oluştu: {e}")
+                messages.error(request, f"An error occurred during registration: {e}")
     else:
         form = CustomUserCreationForm()
     
@@ -144,7 +143,7 @@ def edit_profile(request):
         if u_form.is_valid() and p_form.is_valid():
             u_form.save()
             p_form.save()
-            messages.success(request, "Profiliniz güncellendi.")
+            messages.success(request, "Your profile has been updated.")
             return redirect('dashboard')
     else:
         u_form = UserUpdateForm(instance=request.user)
@@ -178,7 +177,7 @@ def public_profile(request, user_id):
 
 
 # ---------------------------------------------------------
-# 2. ANA SAYFA VE DERS İŞLEMLERİ
+# 2. DASHBOARD AND SESSION OPERATIONS
 # ---------------------------------------------------------
 
 @login_required
@@ -202,12 +201,12 @@ def dashboard(request):
 
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # Geçmiş dersler için yorum kontrolü
+    # Check reviews for past sessions
     for session in past_sessions:
         check_review = Review.objects.filter(session=session).exists()
         session.is_rated = check_review
 
-    # İstatistikler
+    # Stats
     lessons_given_count = Session.objects.filter(tutor=request.user, status='completed').count()
     my_rating = Review.objects.filter(session__tutor=request.user).aggregate(Avg('rating'))['rating__avg']
 
@@ -230,7 +229,7 @@ def add_skill(request):
             user_skill = form.save(commit=False)
             user_skill.user = request.user
             user_skill.save()
-            messages.success(request, f"'{user_skill.skill.name}' yeteneği başarıyla eklendi! Admin onayı bekleniyor.")
+            messages.success(request, f"'{user_skill.skill.name}' skill added successfully! Waiting for Admin approval.")
             return redirect('dashboard')
     else:
         form = UserSkillForm()
@@ -238,7 +237,7 @@ def add_skill(request):
     return render(request, 'core/add_skill.html', {'form': form})
 
 def search_skills(request):
-    # Ortalama puanı hesapla
+    # Calculate average rating
     skills = UserSkill.objects.filter(is_approved=True).annotate(
         average_rating=Avg('user__given_sessions__review__rating')
     )
@@ -290,7 +289,7 @@ def request_session(request, skill_id):
             status='pending'
         )
         new_session.save()
-        messages.success(request, "Ders talebiniz alındı! Admin onayından sonra dersiniz başlayacaktır.")
+        messages.success(request, "Session request received! Waiting for approval.")
         return redirect('dashboard')
     
     return render(request, 'core/session_request.html', {'skill': skill})
@@ -303,7 +302,7 @@ def complete_session(request, session_id):
         session.status = 'completed'
         session.save()
         
-        # Bakiye Transferi
+        # Balance Transfer
         student_profile = session.student.profile
         student_profile.balance -= session.duration
         student_profile.save()
@@ -312,7 +311,7 @@ def complete_session(request, session_id):
         tutor_profile.balance += session.duration
         tutor_profile.save()
         
-        messages.success(request, f"Ders tamamlandı. {session.duration} saat transfer edildi.")
+        messages.success(request, f"Session completed. {session.duration} hours transferred.")
     
     return redirect('dashboard')
 
@@ -322,7 +321,7 @@ def approve_session_tutor(request, session_id):
     if request.user == session.tutor:
         session.status = 'approved'
         session.save()
-        messages.success(request, "Ders talebini onayladınız!")
+        messages.success(request, "You approved the session request!")
     return redirect('dashboard')
 
 @login_required
@@ -331,7 +330,7 @@ def reject_session_tutor(request, session_id):
     if session.status == 'pending_tutor':
         session.status = 'cancelled'
         session.save()
-        messages.warning(request, "Ders talebini reddettiniz.")
+        messages.warning(request, "You rejected the session request.")
     return redirect('dashboard')
 
 @login_required
@@ -341,7 +340,7 @@ def cancel_session(request, session_id):
         if session.status not in ['completed', 'cancelled']:
             session.status = 'cancelled'
             session.save()
-            messages.info(request, "Ders iptal edildi.")
+            messages.info(request, "Session cancelled.")
     return redirect('dashboard')
 
 @login_required
@@ -349,11 +348,11 @@ def add_review(request, session_id):
     session = get_object_or_404(Session, id=session_id)
     
     if request.user != session.student:
-        messages.error(request, "Sadece dersi alan öğrenci yorum yapabilir.")
+        messages.error(request, "Only the student who took the session can leave a review.")
         return redirect('dashboard')
         
     if session.status != 'completed':
-        messages.error(request, "Henüz tamamlanmamış bir derse yorum yapamazsınız.")
+        messages.error(request, "You cannot review a session that is not completed.")
         return redirect('dashboard')
 
     if request.method == 'POST':
@@ -362,7 +361,7 @@ def add_review(request, session_id):
             review = form.save(commit=False)
             review.session = session
             review.save()
-            messages.success(request, "Değerlendirmeniz kaydedildi! Teşekkürler.")
+            messages.success(request, "Your review has been saved! Thank you.")
             return redirect('dashboard')
     else:
         form = DegerlendirmeFormu()
@@ -376,15 +375,15 @@ def meeting_room(request, session_id):
     location = user_skill.location if user_skill else 'online'
 
     if request.user != session.student and request.user != session.tutor:
-        messages.error(request, "Bu toplantıya katılma yetkiniz yok.")
+        messages.error(request, "You are not authorized to join this meeting.")
         return redirect('dashboard')
         
     if location != 'online' or session.status != 'approved':
-        messages.error(request, "Bu ders için aktif bir online görüşme bulunmuyor.")
+        messages.error(request, "There is no active online meeting for this session.")
         return redirect('dashboard')
 
     if session.is_expired:
-        messages.error(request, "Bu dersin süresi dolduğu için katılamazsınız.")
+        messages.error(request, "You cannot join because the session time has expired.")
         return redirect('dashboard')
     
     room_name = f"uniskill_session_{session.id}"
@@ -397,7 +396,7 @@ def meeting_room(request, session_id):
 
 
 # ---------------------------------------------------------
-# 3. MESAJLAŞMA VE ADMİN
+# 3. MESSAGING AND ADMIN
 # ---------------------------------------------------------
 
 @login_required
@@ -461,18 +460,18 @@ def new_chat(request):
         try:
             recipient = User.objects.get(username=username)
             if recipient == request.user:
-                messages.warning(request, "Kendinize mesaj atamazsınız.")
+                messages.warning(request, "You cannot send a message to yourself.")
                 return redirect('inbox')
             return redirect('chat_detail', user_id=recipient.id)
         except User.DoesNotExist:
-            messages.error(request, "Kullanıcı bulunamadı.")
+            messages.error(request, "User not found.")
             return redirect('inbox')
     return redirect('inbox')
 
 @login_required
 def admin_stats(request):
     if not request.user.is_superuser:
-        messages.error(request, "Bu sayfaya sadece yöneticiler girebilir!")
+        messages.error(request, "Only administrators can access this page!")
         return redirect('dashboard')
 
     total_users = User.objects.count()

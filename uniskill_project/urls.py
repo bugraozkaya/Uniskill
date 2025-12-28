@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core import views
 
-# View fonksiyonlarını çağırıyoruz
+# Importing view functions directly
 from core.views import (
     dashboard, register, logout_view, add_skill, 
     search_skills, request_session, complete_session, 
@@ -12,47 +12,46 @@ from core.views import (
     CustomLoginView, approve_session_tutor, reject_session_tutor,
     meeting_room, cancel_session,
     new_chat, chat_detail,
-    public_profile  # <-- BURAYA EKLENDİ
+    public_profile, edit_profile 
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Ana Sayfa ve Giriş
+    # Homepage and Authentication
     path('', dashboard, name='dashboard'),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('register/', register, name='register'),
     path('logout/', logout_view, name='logout'),
     
-    # Yetenek İşlemleri
+    # Skill Operations
     path('add-skill/', add_skill, name='add_skill'),
     path('search/', search_skills, name='search_skills'),
     
-    # --- PROFİL SAYFASI BURADA ---
+    # --- PROFILE PAGES ---
     path('profile/<int:user_id>/', public_profile, name='public_profile'),
+    path('edit-profile/', edit_profile, name='edit_profile'),
 
-    # Ders/Session İşlemleri
+    # Session Operations
     path('request-session/<int:skill_id>/', request_session, name='request_session'),
     path('complete/<int:session_id>/', complete_session, name='complete_session'),
     path('add-review/<int:session_id>/', add_review, name='add_review'),
 
-    # Onaylama/Reddetme/İptal
+    # Approval / Rejection / Cancellation
     path('approve-session/<int:session_id>/', approve_session_tutor, name='approve_session_tutor'),
     path('reject-session/<int:session_id>/', reject_session_tutor, name='reject_session_tutor'),
     path('cancel-session/<int:session_id>/', cancel_session, name='cancel_session'),
     
-    # Toplantı Odası
+    # Meeting Room
     path('meeting/<int:session_id>/', meeting_room, name='meeting_room'),
     
-    # Admin İstatistikleri
+    # Admin Stats
     path('admin-stats/', admin_stats, name='admin_stats'),
 
-    # --- MESAJLAŞMA SİSTEMİ ---
+    # --- MESSAGING SYSTEM ---
     path('inbox/', inbox, name='inbox'),
     path('send-message/<int:recipient_id>/', send_message, name='send_message'),
     path('chat/<int:user_id>/', chat_detail, name='chat_detail'), 
     path('new-chat/', new_chat, name='new_chat'),
-    path('edit-profile/', views.edit_profile, name='edit_profile'),
-    path('session/approve/<int:session_id>/', views.approve_session_tutor, name='approve_session_tutor'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

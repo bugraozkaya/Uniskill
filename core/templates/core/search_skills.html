@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ders Ara - UniSkill</title>
+    <title>Search Skills - UniSkill</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -14,7 +14,7 @@
                 <i class="fas fa-arrow-left me-2"></i>Dashboard
             </a>
             <span class="navbar-text text-white">
-                UniSkill Pazar Yeri
+                UniSkill Marketplace
             </span>
         </div>
     </nav>
@@ -29,14 +29,14 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
                                 <input type="text" name="q" class="form-control border-start-0 bg-light" 
-                                       placeholder="Ne öğrenmek istiyorsun?" 
+                                       placeholder="What do you want to learn?" 
                                        value="{{ query|default:'' }}">
                             </div>
                         </div>
 
                         <div class="col-lg-3 col-md-6">
                             <select name="category" class="form-select bg-light">
-                                <option value="all">Tüm Kategoriler</option>
+                                <option value="all">All Categories</option>
                                 {% for code, name in categories %}
                                     <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>
                                         {{ name }}
@@ -47,19 +47,19 @@
 
                         <div class="col-lg-2 col-md-6">
                             <select name="rating" class="form-select bg-light fw-bold">
-                                <option value="" class="fw-normal">Puan (Tümü)</option>
-                                <option value="4" {% if selected_rating == '4' %}selected{% endif %}>4 Puan ve Üzeri (⭐⭐⭐⭐)</option>
-                                <option value="3" {% if selected_rating == '3' %}selected{% endif %}>3 Puan ve Üzeri (⭐⭐⭐)</option>
-                                <option value="2" {% if selected_rating == '2' %}selected{% endif %}>2 Puan ve Üzeri (⭐⭐)</option>
-                                <option value="1" {% if selected_rating == '1' %}selected{% endif %}>1 Puan ve Üzeri (⭐)</option>
+                                <option value="" class="fw-normal">Rating (All)</option>
+                                <option value="4" {% if selected_rating == '4' %}selected{% endif %}>4 Stars & Up (⭐⭐⭐⭐)</option>
+                                <option value="3" {% if selected_rating == '3' %}selected{% endif %}>3 Stars & Up (⭐⭐⭐)</option>
+                                <option value="2" {% if selected_rating == '2' %}selected{% endif %}>2 Stars & Up (⭐⭐)</option>
+                                <option value="1" {% if selected_rating == '1' %}selected{% endif %}>1 Star & Up (⭐)</option>
                             </select>
                         </div>
 
                         <div class="col-lg-2 col-md-12 d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="submit" class="btn btn-primary fw-bold w-100">Filtrele</button>
+                            <button type="submit" class="btn btn-primary fw-bold w-100">Filter</button>
                             
                             {% if query or selected_category or selected_rating %}
-                                <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary w-100" title="Temizle">
+                                <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary w-100" title="Clear">
                                     <i class="fas fa-times"></i>
                                 </a>
                             {% endif %}
@@ -92,7 +92,7 @@
                                         </span>
                                     {% else %}
                                         <span class="badge bg-light text-muted border">
-                                            <small>Yeni Eğitmen</small>
+                                            <small>New Tutor</small>
                                         </span>
                                     {% endif %}
                                 </div>
@@ -101,7 +101,7 @@
                             <h4 class="card-title fw-bold text-primary">{{ item.skill.name }}</h4>
                             
                             <p class="card-text text-muted small">
-                                {{ item.description|default:"Bu hoca henüz bir açıklama girmemiş."|truncatechars:100 }}
+                                {{ item.description|default:"This tutor hasn't provided a description yet."|truncatechars:100 }}
                             </p>
                             
                             <div class="mb-2">
@@ -114,12 +114,12 @@
                             <div class="d-grid gap-2">
                                 {% if item.user.id != request.user.id %}
                                     <a href="{% url 'send_message' item.user.id %}" class="btn btn-outline-secondary btn-sm">
-                                        <i class="far fa-comment-dots me-2"></i>Soru Sor
+                                        <i class="far fa-comment-dots me-2"></i>Ask Question
                                     </a>
                                 {% endif %}
 
                                 <a href="{% url 'request_session' item.id %}" class="btn btn-primary fw-bold text-white">
-                                    <i class="fas fa-hand-pointer me-2"></i>Ders Talep Et
+                                    <i class="fas fa-hand-pointer me-2"></i>Request Session
                                 </a>
                             </div>
                         </div>
@@ -129,9 +129,9 @@
             {% else %}
                 <div class="col-12 text-center mt-5">
                     <i class="fas fa-search-minus fa-4x text-muted mb-3 opacity-25"></i>
-                    <h3>Aradığınız kriterde ders bulunamadı.</h3>
-                    <p class="text-muted">Farklı bir kelime deneyin veya filtreleri değiştirin.</p>
-                    <a href="{% url 'search_skills' %}" class="btn btn-outline-primary">Tüm Dersleri Göster</a>
+                    <h3>No skills found matching your criteria.</h3>
+                    <p class="text-muted">Try a different keyword or change filters.</p>
+                    <a href="{% url 'search_skills' %}" class="btn btn-outline-primary">Show All Skills</a>
                 </div>
             {% endif %}
         </div>

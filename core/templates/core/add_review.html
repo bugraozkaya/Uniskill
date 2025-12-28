@@ -1,35 +1,35 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Değerlendir - UniSkill</title>
+    <title>Add Review - UniSkill</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light d-flex align-items-center justify-content-center" style="height: 100vh;">
 
     <div class="card shadow border-0" style="width: 500px;">
         <div class="card-body p-5">
-            <h4 class="text-center fw-bold mb-4">Ders Değerlendirmesi</h4>
+            <h4 class="text-center fw-bold mb-4">Session Review</h4>
             
             <div class="alert alert-light border text-center">
                 <strong>{{ session.skill.name }}</strong><br>
-                Eğitmen: {{ session.tutor.get_full_name }}
+                Tutor: {{ session.tutor.get_full_name }}
             </div>
 
             <form method="post">
                 {% csrf_token %}
                 
                 <div class="mb-3">
-                    <label class="fw-bold">Puan Ver</label>
+                    <label class="fw-bold">Rating</label>
                     {{ form.rating }}
                 </div>
 
                 <div class="mb-3">
-                    <label class="fw-bold">Yorumun</label>
+                    <label class="fw-bold">Your Comment</label>
                     {{ form.comment }}
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100 py-2">Değerlendirmeyi Gönder</button>
+                <button type="submit" class="btn btn-primary w-100 py-2">Submit Review</button>
             </form>
         </div>
     </div>

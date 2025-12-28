@@ -4,35 +4,34 @@ from django.conf import settings
 from .models import Profile
 from django.db.models import Q
 
-# 1. SİNYAL: KULLANICI ONAYLANDIĞINDA PUAN VERME
+# 1. SIGNAL: REWARD WHEN USER IS APPROVED
 @receiver(post_save, sender=Profile)
 def reward_referral(sender, instance, created, **kwargs):
-    # Sadece durum 'active' ise VE daha önce ödül verilmediyse çalış
+    # Run only if status is 'active' AND reward hasn't been given yet
     if instance.status == 'active' and not instance.is_rewarded:
         
-        print(f"--- 🚀 ÖDÜL SİSTEMİ TETİKLENDİ: {instance.user.username} ---")
+        print(f"--- 🚀 REWARD SYSTEM TRIGGERED: {instance.user.username} ---")
         
-        # A) Yeni üyeye +1 Saat
+        # A) +1 Hour to New Member
         instance.balance += 1
         instance.is_rewarded = True 
         instance.save(update_fields=['balance', 'is_rewarded'])
-        print(f"✅ Yeni Üye ({instance.user.username}) hesabına +1 Saat eklendi.")
+        print(f"✅ New Member ({instance.user.username}) gained +1 Hour.")
 
-        # B) Davet Edeni Bulma (GÜÇLENDİRİLMİŞ MANTIK)
+        # B) Find Referrer (ENHANCED LOGIC)
         raw_code = instance.used_referral
         
         if raw_code:
             clean_code = raw_code.strip()
-            print(f"🔍 Aranan Kod/Kullanıcı: '{clean_code}'")
+            print(f"🔍 Searching Code/User: '{clean_code}'")
 
-            # YÖNTEM 1: Önce Referans Koduna Bak (Büyük/Küçük harf duyarsız)
+            # METHOD 1: Check Referral Code first (Case-insensitive)
             referrer_profile = Profile.objects.filter(referral_code__iexact=clean_code).first()
 
-            # YÖNTEM 2: Eğer Kodla Bulamazsan, KULLANICI ADINA Bak (Fallback)
+            # METHOD 2: If not found by Code, check USERNAME (Fallback)
             if not referrer_profile:
-                print(f"⚠️ Kod ile bulunamadı, Kullanıcı Adı olarak aranıyor...")
-                # Kullanıcı tablosundan username'i 'clean_code' olanı bul, sonra onun profilini al
-                # settings.AUTH_USER_MODEL'e göre filtreleme yapıyoruz
+                print(f"⚠️ Not found by code, searching as Username...")
+                # Search for username in User table, then get the profile
                 from django.contrib.auth import get_user_model
                 User = get_user_model()
                 
@@ -42,32 +41,33 @@ def reward_referral(sender, instance, created, **kwargs):
                 except User.DoesNotExist:
                     referrer_profile = None
 
-            # SONUÇ: Referans Kişisi Bulunduysa Puanı Ver
+            # RESULT: If Referrer Found, Give Reward
             if referrer_profile:
-                # Kendini davet etmeyi engelle
+                # Prevent self-referral
                 if referrer_profile.user != instance.user:
                     referrer_profile.balance += 1
                     referrer_profile.save()
-                    print(f"🎉 BAŞARILI! Davet Eden ({referrer_profile.user.username}) +1 Saat kazandı. Yeni Bakiye: {referrer_profile.balance}")
+                    print(f"🎉 SUCCESS! Referrer ({referrer_profile.user.username}) gained +1 Hour. New Balance: {referrer_profile.balance}")
                     
-                    # Eğer eski kullanıcının referans kodu boşsa, onu da dolduralım ki bir dahakine kolay bulunsun
+                    # If old user has missing referral code, fill it now for future ease
                     if not referrer_profile.referral_code:
                         referrer_profile.referral_code = referrer_profile.user.username
                         referrer_profile.save(update_fields=['referral_code'])
-                        print(f"ℹ️ Bilgi: {referrer_profile.user.username} kullanıcısının eksik referans kodu tamamlandı.")
+                        print(f"ℹ️ Info: Missing referral code populated for user {referrer_profile.user.username}.")
                 else:
-                    print("⛔ Kişi kendi kodunu kullanmış, ödül verilmedi.")
+                    print("⛔ User used their own code, no reward given.")
             else:
-                print(f"❌ HATA: '{clean_code}' isminde ne bir kod ne de bir kullanıcı bulunamadı!")
+                print(f"❌ ERROR: No code or user found with name '{clean_code}'!")
         else:
-            print("ℹ️ Bu kullanıcı kayıt olurken herhangi bir kod girmemiş.")
+            print("ℹ️ This user did not enter any code during registration.")
 
 
-# 2. SİNYAL: PROFİL OLUŞTURMA
+# 2. SIGNAL: CREATE PROFILE
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile(sender, instance, created, **kwargs):
     if created:
         ref_code = getattr(instance, 'username', instance.pk)
+        # Prevent duplicates using get_or_create
         Profile.objects.get_or_create(
             user=instance, 
             defaults={'referral_code': str(ref_code)}

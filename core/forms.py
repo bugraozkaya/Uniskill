@@ -3,38 +3,43 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 from .models import UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES, Profile
 
-# Doğru User modelini al
+# Get the correct User model
 User = get_user_model()
 
-# 1. KAYIT FORMU
+# 1. REGISTRATION FORM
 class CustomUserCreationForm(UserCreationForm):
     used_referral = forms.CharField(
-        label="Davet Kodu (Varsa)", 
+        label="Referral Code (Optional)", 
         required=False, 
         max_length=10, 
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Varsa davet kodunu girin'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter referral code if you have one'})
     )
 
     department = forms.CharField(
-        label="Bölüm", 
+        label="Department", 
         required=False, 
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Örn: Bilgisayar Mühendisliği'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Computer Engineering'})
     )
 
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'username', 'email']
 
-# 2. YETENEK EKLEME FORMU
+# 2. ADD SKILL FORM
 class UserSkillForm(forms.ModelForm):
-    skill_name = forms.CharField(label="Yetenek Adı", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    category = forms.ChoiceField(label="Kategori", choices=CATEGORY_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+    skill_name = forms.CharField(label="Skill Name", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Python, Guitar, Calculus'}))
+    category = forms.ChoiceField(label="Category", choices=CATEGORY_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
 
     class Meta:
         model = UserSkill
         fields = ['certificate', 'location', 'description']
+        labels = {
+            'certificate': 'Certificate / Proof (Optional)',
+            'location': 'Preferred Location',
+            'description': 'Description'
+        }
         widgets = {
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Tell us about your experience...'}),
             'location': forms.Select(attrs={'class': 'form-select'}),
             'certificate': forms.FileInput(attrs={'class': 'form-control'}),
         }
@@ -49,32 +54,42 @@ class UserSkillForm(forms.ModelForm):
             instance.save()
         return instance
 
-# 3. DERS TALEP FORMU
+# 3. SESSION REQUEST FORM
 class DersTalepFormu(forms.ModelForm):
     class Meta:
         model = Session
         fields = ['date', 'duration']
+        labels = {
+            'date': 'Date & Time',
+            'duration': 'Duration (Hours)'
+        }
         widgets = {
             'date': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'duration': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5}),
         }
 
-# 4. MESAJ FORMU
+# 4. MESSAGE FORM
 class MesajFormu(forms.ModelForm):
     class Meta:
         model = Message
         fields = ['body']
+        labels = {
+            'body': '' # No label for chat input
+        }
         widgets = {
-            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Mesajınızı buraya yazın...'})
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Type your message here...'})
         }
 
-# --- EKSİK OLAN KISIMLAR GERİ EKLENDİ ---
-
-# 5. PROFİL GÜNCELLEME FORMLARI
+# 5. PROFILE UPDATE FORMS
 class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'email']
+        labels = {
+            'first_name': 'First Name',
+            'last_name': 'Last Name',
+            'email': 'Email Address'
+        }
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -85,16 +100,23 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ['department']
+        labels = {
+            'department': 'Department'
+        }
         widgets = {
             'department': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
-# 6. DEĞERLENDİRME FORMU
+# 6. REVIEW FORM
 class DegerlendirmeFormu(forms.ModelForm):
     class Meta:
         model = Review
         fields = ['rating', 'comment']
+        labels = {
+            'rating': 'Rating',
+            'comment': 'Comment'
+        }
         widgets = {
             'rating': forms.Select(attrs={'class': 'form-select'}),
-            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'How was the session?'}),
         }

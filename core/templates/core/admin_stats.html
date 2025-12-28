@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Yönetici Paneli - İstatistikler</title>
+    <title>Admin Panel - Statistics</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -11,33 +11,33 @@
     <div class="container mt-5 mb-5">
         
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold text-dark">📈 Sistem İstatistikleri</h2>
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Dashboard'a Dön</a>
+            <h2 class="fw-bold text-dark">📈 System Statistics</h2>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
         </div>
 
         <div class="row g-3 mb-5">
             <div class="col-md-3">
                 <div class="card border-0 shadow-sm p-3 text-center">
                     <h1 class="text-primary fw-bold">{{ total_users }}</h1>
-                    <small class="text-muted">Toplam Üye</small>
+                    <small class="text-muted">Total Users</small>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card border-0 shadow-sm p-3 text-center">
                     <h1 class="text-success fw-bold">{{ total_skills }}</h1>
-                    <small class="text-muted">Açılan İlan</small>
+                    <small class="text-muted">Active Skills</small>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card border-0 shadow-sm p-3 text-center">
                     <h1 class="text-warning fw-bold">{{ total_hours }}</h1>
-                    <small class="text-muted">Değişilen Saat (Hacim)</small>
+                    <small class="text-muted">Hours Exchanged</small>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card border-0 shadow-sm p-3 text-center">
                     <h1 class="text-info fw-bold">{{ total_sessions_count }}</h1>
-                    <small class="text-muted">Tamamlanan Ders</small>
+                    <small class="text-muted">Completed Sessions</small>
                 </div>
             </div>
         </div>
@@ -45,7 +45,7 @@
         <div class="row">
             <div class="col-md-6 mb-4">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-white fw-bold">Talep Edilen Kategoriler</div>
+                    <div class="card-header bg-white fw-bold">Requested Categories</div>
                     <div class="card-body">
                         <canvas id="categoryChart"></canvas>
                     </div>
@@ -54,7 +54,7 @@
 
             <div class="col-md-6 mb-4">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-white fw-bold">En Aktif 5 Öğrenci</div>
+                    <div class="card-header bg-white fw-bold">Top 5 Active Students</div>
                     <div class="card-body">
                         <canvas id="studentChart"></canvas>
                     </div>
@@ -65,12 +65,12 @@
     </div>
 
     <script>
-        // 1. KATEGORİ GRAFİĞİ (PIE)
+        // 1. CATEGORY CHART (PIE)
         const ctx1 = document.getElementById('categoryChart').getContext('2d');
         new Chart(ctx1, {
             type: 'pie',
             data: {
-                // Django'dan gelen verileri buraya 'safe' filtresiyle aktarıyoruz
+                // Pass data safely from Django to JS
                 labels: {{ cat_labels|safe }},
                 datasets: [{
                     data: {{ cat_counts|safe }},
@@ -81,14 +81,14 @@
             }
         });
 
-        // 2. ÖĞRENCİ GRAFİĞİ (BAR)
+        // 2. STUDENT CHART (BAR)
         const ctx2 = document.getElementById('studentChart').getContext('2d');
         new Chart(ctx2, {
             type: 'bar',
             data: {
                 labels: {{ student_labels|safe }},
                 datasets: [{
-                    label: 'Tamamlanan Ders Sayısı',
+                    label: 'Completed Sessions',
                     data: {{ student_counts|safe }},
                     backgroundColor: '#36A2EB',
                     borderRadius: 5
