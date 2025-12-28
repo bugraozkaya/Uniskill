@@ -53,5 +53,6 @@ urlpatterns = [
     path('chat/<int:user_id>/', chat_detail, name='chat_detail'), 
     path('new-chat/', new_chat, name='new_chat'),
     path('edit-profile/', views.edit_profile, name='edit_profile'),
+    path('session/approve/<int:session_id>/', views.approve_session_tutor, name='approve_session_tutor'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

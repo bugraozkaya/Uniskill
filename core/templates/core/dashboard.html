@@ -190,34 +190,55 @@
 
                                 <td>{{ session.date|date:"d M Y, H:i" }}</td>
 
-                                <td>
+                               <td>
                                     {% if session.status == 'pending' %}
                                         <span class="badge bg-warning text-dark">Admin Onayı Bekliyor</span>
+
                                     {% elif session.status == 'pending_tutor' %}
-                                        <span class="badge bg-info text-dark">Hoca Onayı Bekliyor</span>
+                                         <span class="badge bg-info text-dark">Hoca Onayı Bekliyor</span>
+
                                     {% elif session.status == 'approved' %}
                                         <span class="badge bg-success">Onaylı / Aktif</span>
+
                                     {% else %}
                                         <span class="badge bg-secondary">{{ session.get_status_display }}</span>
                                     {% endif %}
                                 </td>
                                 
                                 <td>
+                                    {# 1. DURUM: DERS ONAYLI VE AKTİFSE #}
                                     {% if session.status == 'approved' %}
-                                        {# Hoca ve Yetenek üzerinden konumu buluyoruz #}
-                                        {% with hoca_yetenek=session.tutor.userskill_set.all %}
-                                            {% for ys in hoca_yetenek %}
-                                                {% if ys.skill == session.skill and ys.location == 'online' %}
-                                                    <a href="{% url 'meeting_room' session.id %}" class="btn btn-sm btn-primary text-white" target="_blank">
-                                                        <i class="fas fa-video me-1"></i> Katıl
-                                                    </a>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endwith %}
-
+                                        {# Online Derse Katıl Butonu Mantığı #}
+                                        {% for ys in session.tutor.userskill_set.all %}
+                                            {% if ys.skill == session.skill and ys.location|lower == 'online' %}
+                                                <a href="{% url 'meeting_room' session.id %}" class="btn btn-sm btn-primary text-white" target="_blank">
+                                                    <i class="fas fa-video me-1"></i> Katıl
+                                                </a>
+                                            {% endif %}
+                                        {% endfor %}
+                                        
                                         <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success ms-1">
                                             <i class="fas fa-flag-checkered"></i> Bitir
                                         </a>
+
+                                    {# 2. DURUM: HOCA ONAYI BEKLENİYORSA #}
+                                    {% elif session.status == 'pending_tutor' %}
+                                        {% if session.tutor == user %}
+                                            {# Giriş yapan kişi hocaysa butonları görsün #}
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'approve_session_tutor' session.id %}" class="btn btn-sm btn-success">Onayla</a>
+                                                <a href="{% url 'reject_session_tutor' session.id %}" class="btn btn-sm btn-danger">Reddet</a>
+                                            </div>
+                                        {% else %}
+                                            {# Giriş yapan hoca değilse sadece durum yazısını görsün #}
+                                            <span class="badge bg-info text-dark">Hoca Onayı Bekleniyor</span>
+                                        {% endif %}
+
+                                    {# 3. DURUM: GENEL BEKLEME VEYA DİĞER DURUMLAR #}
+                                    {% elif session.status == 'pending' %}
+                                        <a href="{% url 'cancel_session' session.id %}" class="btn btn-sm btn-danger">İptal Et</a>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ session.get_status_display }}</span>
                                     {% endif %}
                                 </td>
                             </tr>

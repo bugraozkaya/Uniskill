@@ -13,14 +13,24 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect
 from .forms import OgrenciKayitFormu, UserUpdateForm, ProfileUpdateForm, UserSkillForm, DersTalepFormu
 from .forms import CustomUserCreationForm, UserUpdateForm, ProfileUpdateForm
-
+from django.db import transaction
+from django.shortcuts import render, redirect, get_object_or_404 # get_object_or_404 buraya eklendi
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Session, User, UserSkill
 User = get_user_model()
 # --- FORMLAR ---
 from .forms import (
     CustomUserCreationForm, 
     DersTalepFormu, 
     DegerlendirmeFormu, 
-    MesajFormu
+    MesajFormu,
+    OgrenciKayitFormu, 
+    UserUpdateForm, 
+    ProfileUpdateForm, 
+    UserSkillForm,      # Yetenek ekleme hatasını çözer
+    
+    
 )
 
 # --- MODELLER ---
@@ -226,12 +236,26 @@ def request_session(request, skill_id):
 
 @login_required
 def complete_session(request, session_id):
+    # Yazım hatası düzeltildi
     session = get_object_or_404(Session, id=session_id)
     
-    if request.user == session.student or request.user == session.tutor:
+    if session.status == 'approved':
+        # 1. Ders durumunu kapat
         session.status = 'completed'
         session.save()
-        messages.success(request, "Ders tamamlandı olarak işaretlendi.")
+        
+        # 2. Bakiye transferi (Profile modeli üzerinden)
+        # Öğrencinin profilini al ve düşüş yap
+        student_profile = session.student.profile
+        student_profile.balance -= session.duration
+        student_profile.save()
+        
+        # Hocanın profilini al ve ekleme yap
+        tutor_profile = session.tutor.profile
+        tutor_profile.balance += session.duration
+        tutor_profile.save()
+        
+        messages.success(request, f"Ders tamamlandı. {session.duration} saat transfer edildi.")
     
     return redirect('dashboard')
 
@@ -407,13 +431,13 @@ class CustomLoginView(LoginView):
     
 @login_required
 def approve_session_tutor(request, session_id):
-    # Sadece o dersin HOCASI onaylayabilir
-    session = get_object_or_404(Session, id=session_id, tutor=request.user)
+    session = get_object_or_404(Session, id=session_id)
     
-    if session.status == 'pending_tutor':
-        session.status = 'approved' # Son onay verildi!
+    # Sadece dersin hocası onaylayabilir
+    if request.user == session.tutor:
+        session.status = 'approved'
         session.save()
-        messages.success(request, "Dersi onayladınız! Ders artık aktif.")
+        messages.success(request, "Ders talebini onayladınız!")
     
     return redirect('dashboard')
 
