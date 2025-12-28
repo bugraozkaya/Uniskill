@@ -104,17 +104,52 @@
             </script>
 
             <div class="col-md-8">
-                <div class="card shadow-sm border-0 bg-white mb-4">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="text-muted">Mevcut Zaman Bakiyen</h5>
-                                <h1 class="display-4 fw-bold text-primary">
-                                    {{ profile.balance|default:"0" }} <span class="fs-4 text-muted">Saat</span>
-                                </h1>
+                <div class="row g-3 mb-4">
+    
+                    <div class="col-md-4">
+                        <div class="card shadow-sm border-0 h-100 bg-white">
+                            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Zaman Bakiyen</h6>
+                                    <h2 class="fw-bold text-primary mb-0">{{ profile.balance }} <small class="fs-6 text-muted">Saat</small></h2>
+                                </div>
+                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+                                    <i class="fas fa-hourglass-half fa-2x text-primary"></i>
+                                </div>
                             </div>
-                            <div class="text-end">
-                                <i class="fas fa-hourglass-half fa-4x text-primary opacity-25"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card shadow-sm border-0 h-100 bg-white">
+                            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Verdiğin Dersler</h6>
+                                    <h2 class="fw-bold text-success mb-0">{{ lessons_given_count }} <small class="fs-6 text-muted">Adet</small></h2>
+                                </div>
+                                <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+                                    <i class="fas fa-chalkboard-teacher fa-2x text-success"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card shadow-sm border-0 h-100 bg-white">
+                            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">Eğitmen Puanın</h6>
+                                    <h2 class="fw-bold text-warning mb-0">
+                                        {% if my_rating %}
+                                            {{ my_rating|floatformat:1 }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </h2>
+                                </div>
+                                <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+                                    <i class="fas fa-star fa-2x text-warning"></i>
+                                </div>
                             </div>
                         </div>
                     </div>

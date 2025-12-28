@@ -55,11 +55,16 @@ from .models import (
 
 # core/views.py dosyasındaki dashboard fonksiyonunun DOĞRU HALİ
 
+# core/views.py
+
+# En üste bu importun olduğundan emin ol:
+from django.db.models import Avg, Q
+
 @login_required
 def dashboard(request):
     # Profil yoksa oluştur
     profile, created = Profile.objects.get_or_create(user=request.user)
-    user_profile = request.user.profile
+    
     # 1. Dersleri Çek
     all_sessions = Session.objects.filter(
         Q(student=request.user) | Q(tutor=request.user)
@@ -78,23 +83,30 @@ def dashboard(request):
 
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # --- HATA DÜZELTME BÖLÜMÜ ---
+    # --- GEÇMİŞ DERSLER İÇİN YORUM KONTROLÜ ---
     for session in past_sessions:
-        # HATA 1 ÇÖZÜMÜ: 'reviewer' parametresini kaldırdık.
-        # Sadece 'session'a bakmak yeterli.
         check_review = Review.objects.filter(session=session).exists()
-        
-        # HATA 2 ÇÖZÜMÜ: 'has_review' (model property) yerine 'is_rated' (geçici değişken) kullandık.
         session.is_rated = check_review
-    # ----------------------------
+
+    # --- YENİ EKLENEN İSTATİSTİKLER (ADIM 1) ---
+    
+    # 1. Hoca olarak verip tamamladığı ders sayısı
+    lessons_given_count = Session.objects.filter(tutor=request.user, status='completed').count()
+    
+    # 2. Hoca olarak aldığı yorumların ortalaması
+    my_rating = Review.objects.filter(session__tutor=request.user).aggregate(Avg('rating'))['rating__avg']
+    
+    # -------------------------------------------
 
     context = {
-        'profile': request.user.profile,
-        'my_sessions': Session.objects.filter(student=request.user) | Session.objects.filter(tutor=request.user),
-        'my_sessions': my_sessions,
+        'profile': profile,
+        'my_sessions': my_sessions,     # Düzeltildi (Çift tanımlama silindi)
         'past_sessions': past_sessions,
         'my_skills': my_skills,
-        'profile': profile,
+        
+        # Yeni verileri HTML'e gönderiyoruz:
+        'lessons_given_count': lessons_given_count,
+        'my_rating': my_rating,
     }
     
     return render(request, 'core/dashboard.html', context)
