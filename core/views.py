@@ -59,7 +59,7 @@ from .models import (
 def dashboard(request):
     # Profil yoksa oluştur
     profile, created = Profile.objects.get_or_create(user=request.user)
-    
+    user_profile = request.user.profile
     # 1. Dersleri Çek
     all_sessions = Session.objects.filter(
         Q(student=request.user) | Q(tutor=request.user)
@@ -89,6 +89,8 @@ def dashboard(request):
     # ----------------------------
 
     context = {
+        'profile': request.user.profile,
+        'my_sessions': Session.objects.filter(student=request.user) | Session.objects.filter(tutor=request.user),
         'my_sessions': my_sessions,
         'past_sessions': past_sessions,
         'my_skills': my_skills,
@@ -111,6 +113,10 @@ def register(request):
             return redirect('login')
     else:
         form = CustomUserCreationForm()
+    user = user_form.save()
+    profile = user.profile # Profil otomatik oluşuyorsa
+    profile.department = user_form.cleaned_data.get('department')
+    profile.save()
     return render(request, 'core/register.html', {'form': form})
     
 # ÇIKIŞ YAPMA FONKSİYONU
