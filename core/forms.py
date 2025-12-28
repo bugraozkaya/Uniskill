@@ -1,26 +1,31 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
-from .models import User, UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES, Profile
+from .models import UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES, Profile
 
+# Doğru User modelini al
 User = get_user_model()
 
-# --- 1. KAYIT FORMLARI ---
-# views.py hem 'OgrenciKayitFormu' hem de 'CustomUserCreationForm' isimlerini aradığı için ikisini de tanımlıyoruz
-class OgrenciKayitFormu(UserCreationForm):
-    department = forms.CharField(label="Bölüm", widget=forms.TextInput(attrs={'class': 'form-control'}))
-    phone_number = forms.CharField(label="Telefon Numarası", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    referral_code = forms.CharField(label="Davet Kodu", required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+# 1. KAYIT FORMU
+class CustomUserCreationForm(UserCreationForm):
+    used_referral = forms.CharField(
+        label="Davet Kodu (Varsa)", 
+        required=False, 
+        max_length=10, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Varsa davet kodunu girin'})
+    )
 
-    class Meta(UserCreationForm.Meta):
+    department = forms.CharField(
+        label="Bölüm", 
+        required=False, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Örn: Bilgisayar Mühendisliği'})
+    )
+
+    class Meta:
         model = User
-        fields = ("username", "first_name", "last_name", "email", "department", "phone_number", "referral_code")
+        fields = ['first_name', 'last_name', 'username', 'email']
 
-class CustomUserCreationForm(OgrenciKayitFormu):
-    """views.py içerisinde bu isimle de çağrıldığı için hata almamak adına ekledik."""
-    pass
-
-# --- 2. YETENEK EKLEME FORMU ---
+# 2. YETENEK EKLEME FORMU
 class UserSkillForm(forms.ModelForm):
     skill_name = forms.CharField(label="Yetenek Adı", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
     category = forms.ChoiceField(label="Kategori", choices=CATEGORY_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
@@ -44,7 +49,7 @@ class UserSkillForm(forms.ModelForm):
             instance.save()
         return instance
 
-# --- 3. DERS TALEP FORMU ---
+# 3. DERS TALEP FORMU
 class DersTalepFormu(forms.ModelForm):
     class Meta:
         model = Session
@@ -54,7 +59,7 @@ class DersTalepFormu(forms.ModelForm):
             'duration': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5}),
         }
 
-# --- 4. MESAJ FORMU ---
+# 4. MESAJ FORMU
 class MesajFormu(forms.ModelForm):
     class Meta:
         model = Message
@@ -63,17 +68,28 @@ class MesajFormu(forms.ModelForm):
             'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Mesajınızı buraya yazın...'})
         }
 
-# --- 5. GÜNCELLEME VE DEĞERLENDİRME FORMLARI ---
+# --- EKSİK OLAN KISIMLAR GERİ EKLENDİ ---
+
+# 5. PROFİL GÜNCELLEME FORMLARI
 class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'email']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
 
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ['department']
+        widgets = {
+            'department': forms.TextInput(attrs={'class': 'form-control'}),
+        }
 
+# 6. DEĞERLENDİRME FORMU
 class DegerlendirmeFormu(forms.ModelForm):
     class Meta:
         model = Review

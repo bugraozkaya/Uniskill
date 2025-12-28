@@ -109,15 +109,28 @@ class Message(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
-# --- 6. PROFILE ---
+# core/models.py
+
+from django.db import models
+from django.conf import settings  # <-- 1. BU SATIRI EKLE (User yerine bunu kullanacağız)
+# from django.contrib.auth.models import User  <-- BU SATIRI SİL VEYA YORUMA AL
+
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    # 2. AŞAĞIDAKİ SATIRI DEĞİŞTİR: 'User' yerine 'settings.AUTH_USER_MODEL' yaz
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    
     balance = models.IntegerField(default=3)
     department = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=20, default='pending', choices=[('pending', 'Onay Bekliyor'), ('active', 'Aktif')])
+    
     referral_code = models.CharField(max_length=10, blank=True, null=True, unique=True)
     used_referral = models.CharField(max_length=10, blank=True, null=True)
+    is_rewarded = models.BooleanField(default=False, verbose_name="Referans Ödülü Verildi mi?")
 
+    def __str__(self):
+        # user.username hata verebilir, string döndürmek için self.user yeterli olabilir veya self.user.username (eğer custom modelde username varsa)
+        return str(self.user)
+    
 # --- SIGNALS ---
 @receiver(post_save, sender=User)
 def manage_user_profile(sender, instance, created, **kwargs):
