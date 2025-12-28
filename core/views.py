@@ -184,6 +184,7 @@ def public_profile(request, user_id):
 def dashboard(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     
+    # Tüm oturumları getir
     all_sessions = Session.objects.filter(
         Q(student=request.user) | Q(tutor=request.user)
     ).order_by('date')
@@ -191,22 +192,32 @@ def dashboard(request):
     my_sessions = []
     past_sessions = []
 
+    # Geçmiş ve gelecek oturumları ayır
     for session in all_sessions:
         if session.status in ['cancelled', 'completed'] or session.is_expired:
             past_sessions.append(session)
         else:
             my_sessions.append(session)
     
-    past_sessions.reverse() 
+    past_sessions.reverse() # En yeniden eskiye sırala
 
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # Check reviews for past sessions
+    # --- GÜNCELLENEN KISIM BAŞLANGIÇ ---
+    # Geçmiş oturumlar için inceleme (review) kontrolü
     for session in past_sessions:
-        check_review = Review.objects.filter(session=session).exists()
-        session.is_rated = check_review
+        # İlgili oturum için yapılmış yorumu bul
+        review = Review.objects.filter(session=session).first()
+        
+        if review:
+            session.is_rated = True
+            session.user_rating = review.rating  # Puanı (Örn: 4, 5) template'e taşımak için ekle
+        else:
+            session.is_rated = False
+            session.user_rating = None
+    # --- GÜNCELLENEN KISIM BİTİŞ ---
 
-    # Stats
+    # İstatistikler
     lessons_given_count = Session.objects.filter(tutor=request.user, status='completed').count()
     my_rating = Review.objects.filter(session__tutor=request.user).aggregate(Avg('rating'))['rating__avg']
 
@@ -347,16 +358,24 @@ def cancel_session(request, session_id):
 def add_review(request, session_id):
     session = get_object_or_404(Session, id=session_id)
     
+    # 1. Kontrol: Öğrenci mi?
     if request.user != session.student:
         messages.error(request, "Only the student who took the session can leave a review.")
         return redirect('dashboard')
         
+    # 2. Kontrol: Ders bitti mi?
     if session.status != 'completed':
         messages.error(request, "You cannot review a session that is not completed.")
         return redirect('dashboard')
 
+    # 3. KONTROL (YENİ EKLENEN): Zaten yorum yapılmış mı?
+    # Eğer bu derse ait bir yorum varsa, hata verme, nazikçe uyar ve ana sayfaya dön.
+    if Review.objects.filter(session=session).exists():
+        messages.warning(request, "You have already reviewed this session.")
+        return redirect('dashboard')
+
     if request.method == 'POST':
-        form = DegerlendirmeFormu(request.POST)
+        form = DegerlendirmeFormu(request.POST) # Senin form isminle aynı bıraktım
         if form.is_valid():
             review = form.save(commit=False)
             review.session = session

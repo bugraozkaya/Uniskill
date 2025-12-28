@@ -229,6 +229,7 @@
         </div>
 
         <div class="row g-4">
+            
             <div class="col-md-6">
                 <div class="card h-100 border-0 shadow-sm rounded-4">
                     <div class="card-header bg-white border-0 pt-4 px-4">
@@ -253,13 +254,21 @@
                                     
                                     <div class="d-flex align-items-center gap-2">
                                         {% if session.status == 'completed' %}
+                                            
                                             {% if session.student == user %}
-                                                <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-outline-warning rounded-pill fw-bold shadow-sm py-1 px-3" style="font-size: 0.75rem;">
-                                                    <i class="fas fa-star me-1"></i> Rate
-                                                </a>
+                                                {% if session.is_rated %}
+                                                    <div class="d-inline-flex align-items-center justify-content-center border border-warning text-warning rounded-pill px-3 py-1 bg-warning bg-opacity-10" style="font-size: 0.75rem; font-weight: 700;">
+                                                        <i class="fas fa-star me-1"></i> {{ session.user_rating }} / 5
+                                                    </div>
+                                                {% else %}
+                                                    <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-outline-warning rounded-pill fw-bold shadow-sm py-1 px-3" style="font-size: 0.75rem;">
+                                                        <i class="fas fa-star me-1"></i> Rate
+                                                    </a>
+                                                {% endif %}
                                             {% endif %}
                                             
-                                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill">Completed</span>
+                                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill" style="font-size: 0.75rem;">Completed</span>
+                                        
                                         {% else %}
                                             <span class="badge bg-light text-muted rounded-pill">{{ session.get_status_display }}</span>
                                         {% endif %}
