@@ -1,184 +1,153 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniSkill - Talent Exchange</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-light">
+{% extends 'core/base.html' %}
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}"><i class="fas fa-handshake me-2"></i>UniSkill</a>
-            
-            <div class="d-flex align-items-center gap-3">
-                <span class="navbar-text text-white d-none d-md-block small opacity-75">
-                    Sivas Science and Technology University
-                </span>
+{% block content %}
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100 border-0 text-center p-4">
+            <div class="card-body">
+                <div class="mb-4">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg position-relative" 
+                         style="width: 110px; height: 110px; font-size: 2.5rem; font-weight: 700;">
+                        {{ user.first_name|first|upper }}
+                        <span class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle p-2" style="width: 20px; height: 20px;"></span>
+                    </div>
+                </div>
 
-                {% if user.is_authenticated %}
-                <a href="{% url 'inbox' %}" class="btn btn-light btn-sm shadow-sm me-2 text-primary fw-bold">
-                    <i class="fas fa-envelope"></i> Messages
-                </a>
-                    <div class="d-flex align-items-center bg-primary-dark p-1 rounded">
-                        <span class="text-white me-2 small">
-                            Hello, <strong>{{ user.first_name|default:user.username }}</strong>
+                <h3 class="fw-bold mb-1 text-dark">{{ user.get_full_name|default:user.username }}</h3>
+                <p class="text-muted mb-3">
+                    <i class="fas fa-university me-1 opacity-75"></i> 
+                    {{ user.profile.department|default:"Department Not Set" }}
+                </p>
+
+                <div class="mb-4">
+                    {% if user.profile.status == 'active' %}
+                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 border border-success-subtle fw-medium">
+                            <i class="fas fa-check-circle me-1"></i> Verified Account
                         </span>
-                        <a href="{% url 'logout' %}" class="btn btn-danger btn-sm shadow-sm">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
-
-    <div class="container mt-5">
-        {% if user.is_authenticated %}
-        
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card shadow-sm border-0 overflow-hidden h-100">
-                    <div class="bg-primary" style="height: 80px;"></div>
-                    
-                    <div class="card-body text-center" style="margin-top: -50px;">
-                        <div class="mb-3">
-                            <div class="bg-white rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center p-1" style="width: 100px; height: 100px;">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center w-100 h-100 shadow-inner">
-                                    <span class="fs-2 fw-bold">{{ user.first_name|first|upper }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h4 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h4>
-                        <p class="text-muted small mb-3">
-                            <i class="fas fa-university me-1"></i> 
-                            {{ user.profile.department|default:"Department Not Set" }}
-                        </p>
-
-                        <div class="mb-4">
-                            {% if user.profile.status == 'active' %}
-                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
-                                    <i class="fas fa-check-circle me-1"></i> Verified Account
-                                </span>
-                            {% else %}
-                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2">
-                                    <i class="fas fa-clock me-1"></i> Pending Approval
-                                </span>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-grid gap-2 mb-4">
-                            <a href="{% url 'edit_profile' %}" class="btn btn-primary btn-sm rounded-pill shadow-sm">
-                                <i class="fas fa-user-edit me-1"></i> Edit Profile
-                            </a>
-                        </div>
-
-                        <hr class="text-muted opacity-25">
-
-                        <div class="text-start mt-4">
-                            <label class="small fw-bold text-uppercase text-muted mb-2 d-block text-center">Your Referral Code</label>
-                            <div class="input-group mb-2">
-                                <input type="text" class="form-control form-control-sm text-center fw-bold bg-light border-0 font-monospace" value="{{ user.username }}" readonly id="referralCode">
-                                <button class="btn btn-outline-primary btn-sm" type="button" onclick="copyCode()" title="Copy Code">
-                                    <i class="far fa-copy"></i>
-                                </button>
-                            </div>
-                            <div class="alert alert-info py-2 px-3 border-0 rounded-3 mb-0" style="font-size: 0.75rem;">
-                                <i class="fas fa-gift me-1"></i> Invite a friend, get <strong>+1 Hour</strong>!
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <script>
-            function copyCode() {
-                var copyText = document.getElementById("referralCode");
-                copyText.select();
-                document.execCommand("copy");
-                alert("Referral code copied: " + copyText.value);
-            }
-            </script>
-
-            <div class="col-md-8">
-                <div class="row g-3 mb-4">
-    
-                    <div class="col-md-4">
-                        <div class="card shadow-sm border-0 h-100 bg-white">
-                            <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="text-muted mb-1">Time Balance</h6>
-                                    <h2 class="fw-bold text-primary mb-0">{{ profile.balance }} <small class="fs-6 text-muted">Hours</small></h2>
-                                </div>
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
-                                    <i class="fas fa-hourglass-half fa-2x text-primary"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="card shadow-sm border-0 h-100 bg-white">
-                            <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="text-muted mb-1">Classes Given</h6>
-                                    <h2 class="fw-bold text-success mb-0">{{ lessons_given_count }} <small class="fs-6 text-muted">Sessions</small></h2>
-                                </div>
-                                <div class="bg-success bg-opacity-10 p-3 rounded-circle">
-                                    <i class="fas fa-chalkboard-teacher fa-2x text-success"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="card shadow-sm border-0 h-100 bg-white">
-                            <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="text-muted mb-1">Tutor Rating</h6>
-                                    <h2 class="fw-bold text-warning mb-0">
-                                        {% if my_rating %}
-                                            {{ my_rating|floatformat:1 }}
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </h2>
-                                </div>
-                                <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
-                                    <i class="fas fa-star fa-2x text-warning"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <a href="{% url 'search_skills' %}" class="btn btn-outline-primary w-100 p-3 h-100 shadow-sm transition-hover text-decoration-none">
-                            <i class="fas fa-search fa-2x mb-2"></i><br>Find a Skill
-                        </a>
-                    </div>
-                    <div class="col-md-6">
-                        <a href="{% url 'add_skill' %}" class="btn btn-outline-success w-100 p-3 h-100 shadow-sm transition-hover text-decoration-none">
-                            <i class="fas fa-plus-circle fa-2x mb-2"></i><br>Add Skill
-                        </a>
-                    </div>
-                    {% if user.is_superuser %}
-                    <div class="col-12 mt-3">
-                        <a href="{% url 'admin_stats' %}" class="btn btn-dark w-100 p-3 shadow-sm">
-                            <i class="fas fa-chart-line me-2"></i> Admin Statistics Panel
-                        </a>
-                    </div>
+                    {% else %}
+                        <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2 border border-warning-subtle fw-medium">
+                            <i class="fas fa-clock me-1"></i> Pending Approval
+                        </span>
                     {% endif %}
                 </div>
+
+                <div class="d-grid gap-2 mb-4">
+                    <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary rounded-3 fw-semibold py-2">
+                        <i class="fas fa-user-edit me-2"></i> Edit Profile
+                    </a>
+                </div>
+
+                <div class="bg-light p-3 rounded-3 mt-auto">
+                    <label class="small fw-bold text-uppercase text-muted mb-2 d-block text-center letter-spacing-1">Your Referral Code</label>
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control text-center fw-bold bg-white border text-primary" value="{{ user.username }}" readonly id="referralCode">
+                        <button class="btn btn-white border bg-white text-primary" type="button" onclick="copyCode()" title="Copy Code">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="text-center text-primary small fw-medium">
+                        <i class="fas fa-gift me-1"></i> Invite & Get <strong>+1 Hour</strong>!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function copyCode() {
+        var copyText = document.getElementById("referralCode");
+        copyText.select();
+        document.execCommand("copy");
+        alert("Referral code copied!");
+    }
+    </script>
+
+    <div class="col-lg-8">
+        
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card h-100 p-3 border-0 text-white" style="background: linear-gradient(135deg, #4f46e5, #818cf8);">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 opacity-75">Time Balance</h6>
+                            <h2 class="fw-bold mb-0 display-6">{{ profile.balance }} <small class="fs-6 opacity-75">Hrs</small></h2>
+                        </div>
+                        <div class="bg-white bg-opacity-25 p-3 rounded-circle text-white">
+                            <i class="fas fa-hourglass-half fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 p-3 border-0">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Classes Given</h6>
+                            <h2 class="fw-bold text-dark mb-0 display-6">{{ lessons_given_count }}</h2>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle">
+                            <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 p-3 border-0">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Rating</h6>
+                            <h2 class="fw-bold text-warning mb-0 display-6">
+                                {% if my_rating %}
+                                    {{ my_rating|floatformat:1 }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </h2>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle">
+                            <i class="fas fa-star fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="card shadow-sm border-0 bg-white mt-4">
-            <div class="card-header bg-white border-0 pt-4 px-4">
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <a href="{% url 'search_skills' %}" class="btn btn-white w-100 p-4 h-100 shadow-sm text-primary text-start border-0 d-flex align-items-center transition-hover bg-white">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                        <i class="fas fa-search fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark">Find a Skill</h5>
+                        <small class="text-muted">Explore tutors & learn</small>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="{% url 'add_skill' %}" class="btn btn-white w-100 p-4 h-100 shadow-sm text-success text-start border-0 d-flex align-items-center transition-hover bg-white">
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle me-3">
+                        <i class="fas fa-plus-circle fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark">Add Skill</h5>
+                        <small class="text-muted">Share knowledge & earn</small>
+                    </div>
+                </a>
+            </div>
+            {% if user.is_superuser %}
+            <div class="col-12 mt-2">
+                <a href="{% url 'admin_stats' %}" class="btn btn-dark w-100 p-3 shadow-sm rounded-3">
+                    <i class="fas fa-chart-line me-2"></i> Admin Statistics Panel
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
                 <h5 class="fw-bold text-dark mb-0">
                     <i class="far fa-calendar-alt text-primary me-2"></i>Upcoming Sessions
                 </h5>
@@ -190,89 +159,59 @@
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Skill</th>
-                                    <th>My Role</th>
-                                    <th>With Whom</th>
-                                    <th>Date & Time</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
+                                    <th class="fw-bold text-muted small text-uppercase">Skill</th>
+                                    <th class="fw-bold text-muted small text-uppercase">Role</th>
+                                    <th class="fw-bold text-muted small text-uppercase">With</th>
+                                    <th class="fw-bold text-muted small text-uppercase">Date</th>
+                                    <th class="fw-bold text-muted small text-uppercase">Status</th>
+                                    <th class="fw-bold text-muted small text-uppercase text-end">Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="border-top-0">
                             {% for session in my_sessions %}
                             <tr>
-                                <td class="fw-bold text-primary">
-                                    {{ session.skill.name }}
-                                    {% if session.skill.location == 'online' %}<i class="fas fa-video text-muted ms-1"></i>{% endif %}
-                                </td>
-
+                                <td class="fw-bold text-primary">{{ session.skill.name }}</td>
                                 <td>
                                     {% if session.student == user %}
-                                        <span class="badge bg-info text-dark">Student</span>
+                                        <span class="badge bg-secondary bg-opacity-10 text-dark border">Student</span>
                                     {% else %}
-                                        <span class="badge bg-warning text-dark">Tutor</span>
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">Tutor</span>
                                     {% endif %}
                                 </td>
-
-                                <td>
+                                <td class="fw-medium text-dark">
                                     {% if session.student == user %}
-                                        <i class="fas fa-chalkboard-teacher text-muted me-1"></i> 
                                         {{ session.tutor.first_name }} {{ session.tutor.last_name }}
                                     {% else %}
-                                        <i class="fas fa-user-graduate text-muted me-1"></i> 
                                         {{ session.student.first_name }} {{ session.student.last_name }}
                                     {% endif %}
                                 </td>
-
-                                <td>{{ session.date|date:"d M Y, H:i" }}</td>
-
-                               <td>
-                                    {% if session.status == 'pending' %}
-                                        <span class="badge bg-warning text-dark">Waiting Admin</span>
-
-                                    {% elif session.status == 'pending_tutor' %}
-                                         <span class="badge bg-info text-dark">Waiting Tutor</span>
-
-                                    {% elif session.status == 'approved' %}
-                                        <span class="badge bg-success">Approved / Active</span>
-
+                                <td class="text-muted">{{ session.date|date:"d M, H:i" }}</td>
+                                <td>
+                                    {% if session.status == 'approved' %}
+                                        <span class="badge bg-success">Active</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">{{ session.get_status_display }}</span>
+                                        <span class="badge bg-light text-muted border">{{ session.get_status_display }}</span>
                                     {% endif %}
                                 </td>
-                                
-                                <td>
-                                    {# 1. CASE: SESSION APPROVED #}
+                                <td class="text-end">
                                     {% if session.status == 'approved' %}
-                                        {# Online Join Logic #}
                                         {% for ys in session.tutor.userskill_set.all %}
                                             {% if ys.skill == session.skill and ys.location|lower == 'online' %}
-                                                <a href="{% url 'meeting_room' session.id %}" class="btn btn-sm btn-primary text-white" target="_blank">
+                                                <a href="{% url 'meeting_room' session.id %}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" target="_blank">
                                                     <i class="fas fa-video me-1"></i> Join
                                                 </a>
                                             {% endif %}
                                         {% endfor %}
-                                        
-                                        <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success ms-1">
-                                            <i class="fas fa-flag-checkered"></i> Finish
-                                        </a>
-
-                                    {# 2. CASE: WAITING FOR TUTOR #}
-                                    {% elif session.status == 'pending_tutor' %}
-                                        {% if session.tutor == user %}
-                                            <div class="btn-group" role="group">
-                                                <a href="{% url 'approve_session_tutor' session.id %}" class="btn btn-sm btn-success">Approve</a>
-                                                <a href="{% url 'reject_session_tutor' session.id %}" class="btn btn-sm btn-danger">Reject</a>
-                                            </div>
-                                        {% else %}
-                                            <span class="badge bg-info text-dark">Pending Tutor</span>
-                                        {% endif %}
-
-                                    {# 3. CASE: GENERAL PENDING #}
+                                        <a href="{% url 'complete_session' session.id %}" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">Finish</a>
+                                    {% elif session.status == 'pending_tutor' and session.tutor == user %}
+                                        <div class="btn-group">
+                                            <a href="{% url 'approve_session_tutor' session.id %}" class="btn btn-sm btn-success">Approve</a>
+                                            <a href="{% url 'reject_session_tutor' session.id %}" class="btn btn-sm btn-outline-danger">Reject</a>
+                                        </div>
                                     {% elif session.status == 'pending' %}
-                                        <a href="{% url 'cancel_session' session.id %}" class="btn btn-sm btn-danger">Cancel</a>
+                                        <a href="{% url 'cancel_session' session.id %}" class="btn btn-sm btn-light text-danger border">Cancel</a>
                                     {% else %}
-                                        <span class="badge bg-secondary">{{ session.get_status_display }}</span>
+                                        <span class="text-muted small">-</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -281,137 +220,91 @@
                         </table>
                     </div>
                 {% else %}
-                    <div class="alert alert-light border text-center text-muted m-0">
-                        <i class="fas fa-calendar-check me-2"></i>You have no active or pending sessions.
+                    <div class="text-center py-5 bg-light rounded-3 border border-dashed">
+                        <i class="far fa-calendar-check fa-2x text-muted mb-3 opacity-50"></i>
+                        <p class="mb-0 text-muted fw-medium">No active or upcoming sessions.</p>
                     </div>
                 {% endif %}
             </div>
         </div>
 
-        <div class="card shadow-sm border-0 bg-white mt-4">
-            <div class="card-header bg-white border-0 pt-4 px-4">
-                <h5 class="fw-bold text-dark mb-0">
-                    <i class="fas fa-history text-secondary me-2"></i>Past Sessions
-                </h5>
-            </div>
-            
-            <div class="card-body px-4 pb-4">
-                {% if past_sessions %}
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Skill</th>
-                                    <th>My Role</th>
-                                    <th>With Whom</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th class="text-end">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fas fa-history text-secondary me-2"></i>History
+                        </h5>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        {% if past_sessions %}
+                            <ul class="list-group list-group-flush">
                                 {% for session in past_sessions %}
-                                <tr>
-                                    <td class="fw-bold">{{ session.skill.name }}</td>
-                                    
-                                    <td>
-                                        {% if session.student == user %}
-                                            <span class="badge bg-secondary">Student</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Tutor</span>
-                                        {% endif %}
-                                    </td>
-
-                                    <td>
-                                        {% if session.student == user %}
-                                            {{ session.tutor.first_name }} {{ session.tutor.last_name }}
-                                        {% else %}
-                                            {{ session.student.first_name }} {{ session.student.last_name }}
-                                        {% endif %}
-                                    </td>
-
-                                    <td>{{ session.date|date:"d M Y" }}</td>
-                                    
-                                    <td>
-                                        {% if session.status == 'completed' %}
-                                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Completed</span>
-                                        {% elif session.status == 'cancelled' %}
-                                            <span class="badge bg-danger">Cancelled</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary" title="Expired">Expired</span>
-                                        {% endif %}
-                                    </td>
-
-                                    <td class="text-end">
-                                        {% if session.status == 'completed' and session.student == user %}
-                                            
-                                            {% if session.is_rated %}
-                                                <span class="badge bg-light text-success border border-success">
-                                                    <i class="fas fa-check-double me-1"></i>Rated
-                                                </span>
-                                            {% else %}
-                                                <a href="{% url 'add_review' session.id %}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
-                                                    <i class="fas fa-star me-1"></i>Rate
-                                                </a>
-                                            {% endif %}
-                                        
-                                        {% elif session.status == 'cancelled' %}
-                                            <small class="text-muted">-</small>
-                                        {% else %}
-                                            <small class="text-muted" title="Expired">-</small>
-                                        {% endif %}
-                                    </td>
-                                </tr>
+                                <li class="list-group-item px-0 d-flex justify-content-between align-items-center border-bottom-0 py-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-light rounded p-2 me-3 text-muted">
+                                            <i class="fas fa-check-double"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">{{ session.skill.name }}</div>
+                                            <div class="text-muted small">{{ session.date|date:"d M Y" }}</div>
+                                        </div>
+                                    </div>
+                                    {% if session.status == 'completed' %}
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill">Completed</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-muted rounded-pill">{{ session.get_status_display }}</span>
+                                    {% endif %}
+                                </li>
                                 {% endfor %}
-                            </tbody>
-                        </table>
+                            </ul>
+                        {% else %}
+                            <p class="text-muted text-center py-3 mb-0">No history yet.</p>
+                        {% endif %}
                     </div>
-                {% else %}
-                    <p class="text-muted text-center py-3">No past sessions yet.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card shadow-sm border-0 bg-white mt-4 mb-5">
-            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold text-dark mb-0">Skills I Can Teach</h5>
-                <span class="badge bg-primary rounded-pill">{{ my_skills.count }} Skills</span>
+                </div>
             </div>
 
-            <div class="card-body px-4 pb-4">
-                {% if my_skills %}
-                    <div class="list-group list-group-flush">
-                        {% for item in my_skills %}
-                        <div class="list-group-item border-0 px-0 py-3 d-flex justify-content-between align-items-center border-bottom">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-light text-primary rounded p-3 me-3">
-                                    <i class="fas fa-chalkboard-teacher fa-lg"></i>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-dark mb-0">Skills I Teach</h5>
+                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">{{ my_skills.count }}</span>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        {% if my_skills %}
+                            <div class="list-group list-group-flush">
+                                {% for item in my_skills %}
+                                <div class="list-group-item border-0 px-0 py-2 d-flex justify-content-between align-items-center border-bottom-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-light text-primary rounded p-2 me-3">
+                                            <i class="fas fa-chalkboard-teacher"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold text-dark">{{ item.skill.name }}</h6>
+                                            <small class="text-muted">{{ item.skill.get_category_display }}</small>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if item.is_approved %}
+                                        <i class="fas fa-check-circle text-success" title="Active"></i>
+                                    {% else %}
+                                        <i class="fas fa-clock text-warning" title="Pending"></i>
+                                    {% endif %}
                                 </div>
-                                <div>
-                                    <h6 class="mb-0 fw-bold">{{ item.skill.name }}</h6>
-                                    <small class="text-muted">{{ item.skill.get_category_display }}</small>
-                                </div>
+                                {% endfor %}
                             </div>
-                            
-                            {% if item.is_approved %}
-                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">Active</span>
-                            {% else %}
-                                <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">Pending Approval</span>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4 text-muted">
+                                <p class="small">You haven't added any skills.</p>
+                                <a href="{% url 'add_skill' %}" class="btn btn-sm btn-outline-primary rounded-pill">Add Now</a>
+                            </div>
+                        {% endif %}
                     </div>
-                {% else %}
-                    <div class="text-center py-4 text-muted">
-                        <p>You haven't added any skills yet.</p>
-                        <a href="{% url 'add_skill' %}" class="btn btn-sm btn-outline-primary">Add Now</a>
-                    </div>
-                {% endif %}
+                </div>
             </div>
         </div>
 
-        {% endif %}
     </div>
-
-</body>
-</html>
+</div>
+{% endblock %}
