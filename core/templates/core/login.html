@@ -1,107 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Login - UniSkill</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <style>
-        /* Style to dim and lock screen during countdown */
-        .blocked-overlay {
-            pointer-events: none; /* Block clicks */
-            opacity: 0.6;         /* Make transparent */
-        }
-    </style>
-</head>
-<body class="bg-light d-flex align-items-center justify-content-center" style="height: 100vh;">
+{% extends 'core/base.html' %}
 
-    <div class="card shadow-lg border-0" style="width: 400px;">
-        <div class="card-header bg-primary text-white text-center py-4">
-            <h3 class="mb-0 fw-bold"><i class="fas fa-handshake me-2"></i>UniSkill</h3>
-            <small>Skill Exchange Platform</small>
-        </div>
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="col-md-5 col-lg-4">
         
-        <div class="card-body p-4 position-relative">
-            
-            {% if wait_time %}
-                <div id="countdown-alert" class="alert alert-danger text-center fw-bold shadow-sm">
-                    <i class="fas fa-clock fa-spin me-2"></i>
-                    You can try again in <span id="timer">{{ wait_time }}</span> seconds.
-                </div>
-            {% endif %}
+        <div class="text-center mb-4">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                <i class="fas fa-handshake fa-2x"></i>
+            </div>
+            <h3 class="fw-bold text-dark">Welcome Back!</h3>
+            <p class="text-muted">Login to continue learning & teaching.</p>
+        </div>
 
-            {% if messages and not wait_time %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle me-2"></i> {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-            <form method="post" id="loginForm" class="{% if wait_time %}blocked-overlay{% endif %}">
-                {% csrf_token %}
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden bg-white">
+            <div class="card-body p-4 p-md-5 position-relative">
                 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Username</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-user"></i></span>
-                        <input type="text" name="username" class="form-control" required>
+                {% if wait_time %}
+                    <div id="countdown-alert" class="alert alert-danger text-center fw-bold shadow-sm rounded-3 border-0 mb-4">
+                        <i class="fas fa-clock fa-spin me-2"></i>
+                        Try again in <span id="timer">{{ wait_time }}</span> seconds.
                     </div>
-                </div>
+                {% endif %}
 
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Password</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        <input type="password" name="password" class="form-control" required>
+                {% if messages and not wait_time %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show border-0 bg-light d-flex align-items-center" role="alert">
+                            <i class="fas fa-exclamation-circle text-danger me-2"></i> {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" id="loginForm" class="{% if wait_time %}opacity-50 pe-none{% endif %}">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0 text-muted ps-3"><i class="fas fa-user"></i></span>
+                            <input type="text" name="username" class="form-control bg-light border-0 py-2" placeholder="Enter your username" required>
+                        </div>
                     </div>
-                </div>
 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary fw-bold py-2">Login</button>
-                    <a href="{% url 'register' %}" class="btn btn-outline-secondary">Don't have an account? Register</a>
-                </div>
-            </form>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0 text-muted ps-3"><i class="fas fa-lock"></i></span>
+                            <input type="password" name="password" class="form-control bg-light border-0 py-2" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm py-2 transition-hover">
+                            Login <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="card-footer bg-light border-0 text-center py-3">
+                <small class="text-muted">Don't have an account? <a href="{% url 'register' %}" class="text-primary fw-bold text-decoration-none">Register Now</a></small>
+            </div>
         </div>
     </div>
+</div>
 
-    <script>
-        // IF 'wait_time' COMES FROM BACKEND, THIS CODE RUNS
-        {% if wait_time %}
-            let seconds = {{ wait_time }};
-            const timerElement = document.getElementById("timer");
-            const formElement = document.getElementById("loginForm");
-            const alertElement = document.getElementById("countdown-alert");
+<script>
+    // Geri sayım scripti (Tasarım değişse de mantık aynı)
+    {% if wait_time %}
+        let seconds = {{ wait_time }};
+        const timerElement = document.getElementById("timer");
+        
+        const countdown = setInterval(function() {
+            seconds--;
+            if (seconds < 0) seconds = 0;
+            timerElement.innerText = seconds;
 
-            // Run every 1 second
-            const countdown = setInterval(function() {
-                seconds--;
-                
-                // Don't show below 0
-                if (seconds < 0) seconds = 0;
-                
-                timerElement.innerText = seconds;
-
-                if (seconds <= 0) {
-                    clearInterval(countdown);
-                    
-                    // KEY POINT: Don't refresh immediately! 
-                    // Show "Unlocking..." message to user
-                    timerElement.innerText = "0 (Unlocking...)";
-                    
-                    // Wait 1.5 seconds extra to ensure server time expires
-                    setTimeout(function() {
-                        // Use this instead of location.reload():
-                        // This command reopens the page cleanly (via GET request)
-                        window.location.href = window.location.pathname;
-                    }, 1500);
-                }
-            }, 1000);
-        {% endif %}
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+            if (seconds <= 0) {
+                clearInterval(countdown);
+                timerElement.innerText = "0 (Reloading...)";
+                setTimeout(function() {
+                    window.location.href = window.location.pathname;
+                }, 1500);
+            }
+        }, 1000);
+    {% endif %}
+</script>
+{% endblock %}

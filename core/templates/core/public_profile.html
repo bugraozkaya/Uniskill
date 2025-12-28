@@ -1,131 +1,157 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ tutor.get_full_name }} - Profile</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-light">
+{% extends 'core/base.html' %}
 
-    <nav class="navbar navbar-dark bg-primary shadow-sm mb-4">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
-                <i class="fas fa-arrow-left me-2"></i>Dashboard
-            </a>
-            <span class="navbar-text text-white">Tutor Profile</span>
-        </div>
-    </nav>
-
-    <div class="container">
-        <div class="row">
+{% block content %}
+<div class="row">
+    
+    <div class="col-lg-4 mb-4">
+        <div class="sticky-top" style="top: 100px; z-index: 1;">
             
-            <div class="col-md-4 mb-4">
-                <div class="card shadow-sm border-0 mb-4 text-center">
-                    <div class="card-body p-4">
-                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px;">
-                            <span class="display-4 fw-bold text-primary">{{ tutor.first_name|first|upper }}</span>
+            <div class="card shadow-lg border-0 text-center p-4 rounded-4 bg-white mb-4">
+                <div class="card-body">
+                    <div class="mb-4 position-relative d-inline-block">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-lg" 
+                             style="width: 120px; height: 120px; font-size: 3rem; font-weight: 700;">
+                            {{ tutor.first_name|first|upper }}
                         </div>
-                        <h3 class="fw-bold">{{ tutor.get_full_name }}</h3>
-                        <p class="text-muted">{{ profile.department|default:"Department Not Set" }}</p>
-                        
-                        <div class="d-flex justify-content-center gap-3 mb-3">
-                            <div class="text-center">
-                                <h5 class="fw-bold mb-0">{{ total_sessions }}</h5>
-                                <small class="text-muted">Sessions</small>
-                            </div>
-                            <div class="vr"></div>
-                            <div class="text-center">
-                                <h5 class="fw-bold mb-0 text-warning">
-                                    {% if average_rating %}
-                                        {{ average_rating|floatformat:1 }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </h5>
-                                <small class="text-muted">Rating</small>
-                            </div>
-                        </div>
+                        <span class="position-absolute bottom-0 end-0 bg-success border border-4 border-white rounded-circle p-2" 
+                              style="width: 24px; height: 24px;" title="Active Tutor"></span>
+                    </div>
 
-                        {% if request.user != tutor %}
-                        <a href="{% url 'send_message' tutor.id %}" class="btn btn-outline-primary w-100">
+                    <h3 class="fw-bold mb-1 text-dark">{{ tutor.get_full_name }}</h3>
+                    <p class="text-muted mb-4">
+                        <i class="fas fa-university me-1 opacity-50"></i> 
+                        {{ profile.department|default:"Department Not Set" }}
+                    </p>
+                    
+                    <div class="d-flex justify-content-center gap-3 mb-4 p-3 bg-light rounded-4">
+                        <div class="text-center px-3">
+                            <h4 class="fw-bold mb-0 text-dark">{{ total_sessions }}</h4>
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Sessions</small>
+                        </div>
+                        <div class="vr opacity-25"></div>
+                        <div class="text-center px-3">
+                            <h4 class="fw-bold mb-0 text-warning">
+                                {% if average_rating %}
+                                    {{ average_rating|floatformat:1 }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </h4>
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Rating</small>
+                        </div>
+                    </div>
+
+                    {% if request.user != tutor %}
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'send_message' tutor.id %}" class="btn btn-primary rounded-3 py-2 fw-bold shadow-sm transition-hover">
                             <i class="far fa-envelope me-2"></i>Send Message
                         </a>
-                        {% endif %}
                     </div>
+                    {% endif %}
                 </div>
+            </div>
 
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white border-0 pt-3">
-                        <h6 class="fw-bold">Teaching Skills</h6>
-                    </div>
+            <div class="card shadow-sm border-0 rounded-4 bg-white">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <h6 class="fw-bold text-uppercase text-muted small letter-spacing-1">
+                        <i class="fas fa-chalkboard-teacher me-2 text-primary"></i>Teaching Skills
+                    </h6>
+                </div>
+                <div class="card-body px-2 pb-2">
                     <ul class="list-group list-group-flush">
                         {% for skill in skills %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-3">
-                            <span>{{ skill.skill.name }}</span>
-                            <span class="badge bg-light text-dark border">{{ skill.skill.get_category_display }}</span>
+                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-3 py-2 my-1 rounded-3 hover-bg-light">
+                            <span class="fw-medium text-dark">{{ skill.skill.name }}</span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill">
+                                {{ skill.skill.get_category_display }}
+                            </span>
                         </li>
                         {% endfor %}
                     </ul>
                 </div>
             </div>
 
-            <div class="col-md-8">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
-                        <h5 class="fw-bold mb-0">Student Reviews</h5>
-                        <span class="badge bg-primary rounded-pill">{{ reviews.count }} Reviews</span>
-                    </div>
-                    
-                    <div class="card-body p-4">
-                        {% if reviews %}
-                            {% for review in reviews %}
-                            <div class="d-flex mb-4 border-bottom pb-4">
-                                <div class="flex-shrink-0">
-                                    <div class="bg-secondary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center text-secondary fw-bold" style="width: 50px; height: 50px;">
-                                        {{ review.session.student.first_name|first|upper }}
-                                    </div>
-                                </div>
-                                
-                                <div class="flex-grow-1 ms-3">
-                                    <div class="d-flex justify-content-between">
-                                        <h6 class="fw-bold mb-1">
-                                            <a href="{% url 'public_profile' review.session.student.id %}" class="text-decoration-none text-dark">
-                                                {{ review.session.student.first_name }}
-                                            </a>
-                                            <span class="text-muted fw-normal" style="font-size: 0.8rem;">({{ review.session.skill.name }})</span>
-                                        </h6>
-                                        <small class="text-muted">{{ review.created_at|date:"d M Y" }}</small>
-                                    </div>
-                                    
-                                    <div class="text-warning small mb-2">
-                                        {% for i in "12345" %}
-                                            {% if forloop.counter <= review.rating %}
-                                                <i class="fas fa-star"></i>
-                                            {% else %}
-                                                <i class="far fa-star"></i>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                    
-                                    <p class="text-muted mb-0 bg-light p-3 rounded" style="font-style: italic;">
-                                        "{{ review.comment }}"
-                                    </p>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="text-center py-5">
-                                <i class="far fa-comment-dots fa-3x text-muted mb-3 opacity-25"></i>
-                                <p class="text-muted">No reviews yet for this tutor.</p>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 
-</body>
-</html>
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 rounded-4 bg-white">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h4 class="fw-bold mb-0 text-dark">
+                    Student Reviews
+                </h4>
+                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">{{ reviews.count }} Reviews</span>
+            </div>
+            
+            <div class="card-body p-4">
+                {% if reviews %}
+                    {% for review in reviews %}
+                    <div class="d-flex mb-4 border-bottom pb-4 last-no-border">
+                        <div class="flex-shrink-0">
+                            <div class="bg-light text-primary border rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+                                 style="width: 55px; height: 55px; font-size: 1.2rem;">
+                                {{ review.session.student.first_name|first|upper }}
+                            </div>
+                        </div>
+                        
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark">
+                                        <a href="{% url 'public_profile' review.session.student.id %}" class="text-decoration-none text-dark hover-text-primary">
+                                            {{ review.session.student.first_name }} {{ review.session.student.last_name }}
+                                        </a>
+                                    </h6>
+                                    <small class="text-muted">Course: <span class="fw-bold text-primary">{{ review.session.skill.name }}</span></small>
+                                </div>
+                                <small class="text-muted bg-light px-2 py-1 rounded border">{{ review.created_at|date:"d M Y" }}</small>
+                            </div>
+                            
+                            <div class="text-warning small my-2">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star opacity-25"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="bg-light p-3 rounded-3 position-relative mt-2 border-start border-4 border-primary">
+                                <p class="text-dark mb-0 fst-italic">
+                                    "{{ review.comment }}"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5 bg-light rounded-3 border border-dashed m-2">
+                        <i class="far fa-comment-dots fa-3x text-muted mb-3 opacity-25"></i>
+                        <h5 class="text-muted fw-bold">No reviews yet</h5>
+                        <p class="text-muted small mb-0">This tutor hasn't received any reviews yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    /* Son yorumun altındaki çizgiyi kaldır */
+    .last-no-border:last-child {
+        border-bottom: none !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Hover efektleri */
+    .hover-bg-light:hover {
+        background-color: #f8f9fa;
+    }
+    .hover-text-primary:hover {
+        color: var(--primary-color) !important;
+    }
+</style>
+{% endblock %}

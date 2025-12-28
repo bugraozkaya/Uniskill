@@ -1,68 +1,88 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request Session - UniSkill</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-light">
+{% extends 'core/base.html' %}
 
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6">
-                <div class="card shadow-lg border-0">
-                    <div class="card-header bg-primary text-white text-center py-4">
-                        <h4 class="mb-0 fw-bold"><i class="fas fa-calendar-plus me-2"></i>Request Session</h4>
-                    </div>
-                    <div class="card-body p-4">
-                        
-                        <div class="alert alert-light border text-center mb-4">
-                            <h5 class="text-primary fw-bold mb-1">{{ skill.skill.name }}</h5>
-                            <p class="text-muted small mb-0">Tutor: {{ skill.user.get_full_name|default:skill.user.username }}</p>
-                            <span class="badge bg-secondary mt-2">{{ skill.skill.category.name }}</span>
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-6 col-lg-5">
+        
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden bg-white">
+            
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 text-center">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 70px; height: 70px;">
+                    <i class="fas fa-calendar-plus fa-2x"></i>
+                </div>
+                <h3 class="fw-bold text-dark">Request Session</h3>
+                <p class="text-muted">Book a time to learn new skills.</p>
+            </div>
+
+            <div class="card-body p-4 p-md-5 pt-2">
+                
+                <div class="bg-light rounded-4 p-3 mb-4 border border-light text-center position-relative">
+                    <h5 class="fw-bold text-primary mb-1">{{ skill.skill.name }}</h5>
+                    <span class="badge bg-white text-muted border shadow-sm rounded-pill mb-2">{{ skill.skill.category.name }}</span>
+                    
+                    <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                        <span class="text-muted small text-uppercase fw-bold" style="font-size: 0.7rem;">Tutor</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 24px; height: 24px; font-size: 0.8rem;">
+                                {{ skill.user.first_name|first|upper }}
+                            </div>
+                            <span class="fw-medium text-dark small">{{ skill.user.get_full_name|default:skill.user.username }}</span>
                         </div>
-
-                        <form method="POST">
-                            {% csrf_token %}
-                            
-                            <div class="mb-3">
-                                <label for="date" class="form-label fw-bold text-muted">Session Date & Time</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white"><i class="far fa-calendar-alt text-primary"></i></span>
-                                    <input type="datetime-local" class="form-control" id="date" name="date" required>
-                                </div>
-                                <div class="form-text">Please select a future date.</div>
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="duration" class="form-label fw-bold text-muted">Duration (Hours)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white"><i class="far fa-clock text-primary"></i></span>
-                                    <select class="form-select" id="duration" name="duration">
-                                        <option value="1">1 Hour</option>
-                                        <option value="2">2 Hours</option>
-                                        <option value="3">3 Hours</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg shadow-sm">
-                                    <i class="fas fa-paper-plane me-2"></i>Send Request
-                                </button>
-                                <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary">
-                                    Cancel & Return
-                                </a>
-                            </div>
-                        </form>
                     </div>
                 </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="date" class="form-label fw-bold small text-muted text-uppercase">Session Date & Time</label>
+                        <div class="input-group shadow-sm rounded-3">
+                            <span class="input-group-text bg-light border-0 ps-3 text-primary"><i class="far fa-calendar-alt"></i></span>
+                            <input type="datetime-local" class="form-control bg-light border-0 py-3 ps-3" id="date" name="date" required style="cursor: pointer;">
+                        </div>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="fas fa-info-circle me-1"></i>Please select a future date.
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="duration" class="form-label fw-bold small text-muted text-uppercase">Duration (Hours)</label>
+                        <div class="input-group shadow-sm rounded-3">
+                            <span class="input-group-text bg-light border-0 ps-3 text-primary"><i class="far fa-clock"></i></span>
+                            <select class="form-select bg-light border-0 py-3 ps-3" id="duration" name="duration" style="cursor: pointer;">
+                                <option value="1">1 Hour</option>
+                                <option value="2">2 Hours</option>
+                                <option value="3">3 Hours</option>
+                            </select>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-muted">Balance Cost:</small>
+                            <span class="badge bg-warning text-dark rounded-pill" id="cost-badge">1 Hour</span>
+                        </div>
+                    </div>
+
+                    <hr class="opacity-10 my-4">
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm py-2 transition-hover">
+                            <i class="fas fa-paper-plane me-2"></i>Send Request
+                        </button>
+                        <a href="{% url 'search_skills' %}" class="btn btn-light text-muted rounded-3 py-2 fw-medium">
+                            Cancel & Return
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-</body>
-</html>
+<script>
+    // Süre değiştiğinde maliyet rozetini güncelle
+    document.getElementById('duration').addEventListener('change', function() {
+        const val = this.value;
+        const badge = document.getElementById('cost-badge');
+        badge.innerText = val + (val > 1 ? ' Hours' : ' Hour');
+    });
+</script>
+{% endblock %}

@@ -1,57 +1,115 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Request Session - UniSkill</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
+{% extends 'core/base.html' %}
 
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-6 col-lg-5">
+        
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden bg-white">
+            
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 text-center">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 70px; height: 70px;">
+                    <i class="far fa-calendar-check fa-2x"></i>
+                </div>
+                <h3 class="fw-bold text-dark">Book a Session</h3>
+                <p class="text-muted">Choose a time to learn.</p>
+            </div>
+
+            <div class="card-body p-4 p-md-5 pt-2">
+
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show border-0 d-flex align-items-center gap-2 mb-4" role="alert">
+                            {% if message.tags == 'error' %}
+                                <i class="fas fa-exclamation-circle text-danger"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle text-primary"></i>
+                            {% endif %}
+                            <div class="small">{{ message }}</div>
+                            <button type="button" class="btn-close small" data-bs-dismiss="alert"></button>
+                        </div>
                     {% endfor %}
                 {% endif %}
 
-                <div class="card shadow border-0">
-                    <div class="card-header bg-primary text-white p-4">
-                        <h4 class="mb-0">Session Request Form</h4>
-                        <small>Tutor: <strong>{{ skill.user.get_full_name|default:skill.user.username }}</strong></small>
-                    </div>
-                    <div class="card-body p-5">
-                        <h5 class="text-primary fw-bold">{{ skill.skill.name }}</h5>
-                        <p class="text-muted">{{ skill.skill.description }}</p>
-                        <hr>
-
-                        <form method="post">
-                            {% csrf_token %}
-                            
-                            <div class="mb-3">
-                                <label class="fw-bold mb-1">Date & Time</label>
-                                {{ form.date }}
+                <div class="bg-light rounded-4 p-3 mb-4 border border-light text-center">
+                    <h5 class="fw-bold text-primary mb-1">{{ skill.skill.name }}</h5>
+                    <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                        <span class="text-muted small text-uppercase fw-bold" style="font-size: 0.7rem;">With Tutor</span>
+                        <div class="bg-white text-dark rounded-pill px-2 py-1 shadow-sm d-flex align-items-center gap-2 border">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: 0.7rem;">
+                                {{ skill.user.first_name|first|upper }}
                             </div>
-
-                            <div class="mb-3">
-                                <label class="fw-bold mb-1">Duration (Hours)</label>
-                                {{ form.duration }}
-                                <small class="text-muted">Amount to be deducted from your balance.</small>
-                            </div>
-
-                            <div class="d-flex gap-2 mt-4">
-                                <button type="submit" class="btn btn-success flex-grow-1 py-2 fw-bold">
-                                    Confirm & Pay
-                                </button>
-                                <a href="{% url 'search_skills' %}" class="btn btn-outline-secondary py-2">Cancel</a>
-                            </div>
-                        </form>
+                            <span class="small fw-bold">{{ skill.user.get_full_name|default:skill.user.username }}</span>
+                        </div>
                     </div>
                 </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Date & Time</label>
+                        <div class="input-group shadow-sm rounded-3">
+                            <span class="input-group-text bg-light border-0 ps-3 text-primary"><i class="far fa-calendar-alt"></i></span>
+                            {{ form.date }}
+                        </div>
+                        <div class="form-text text-muted small mt-1">
+                            Please select a future date.
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Duration (Hours)</label>
+                        <div class="input-group shadow-sm rounded-3">
+                            <span class="input-group-text bg-light border-0 ps-3 text-primary"><i class="far fa-clock"></i></span>
+                            {{ form.duration }}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-muted"><i class="fas fa-coins me-1 text-warning"></i>Balance Deduction:</small>
+                            <span class="badge bg-warning text-dark rounded-pill" id="cost-badge">1 Hour</span>
+                        </div>
+                    </div>
+
+                    <hr class="opacity-10 my-4">
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm py-2 transition-hover">
+                            Confirm Request <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                        <a href="{% url 'search_skills' %}" class="btn btn-light text-muted rounded-3 py-2 fw-medium">Cancel</a>
+                    </div>
+                </form>
+
             </div>
         </div>
     </div>
+</div>
 
-</body>
-</html>
+<script>
+    // Django form elemanlarına otomatik modern stil ekle
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('input, select');
+        
+        inputs.forEach(input => {
+            input.classList.add('form-control', 'bg-light', 'border-0', 'py-3', 'ps-3');
+            
+            // Tarih inputu ise
+            if (input.type === 'datetime-local') {
+                input.style.cursor = 'pointer';
+            }
+
+            // Süre seçimi ise (Select)
+            if (input.tagName === 'SELECT') {
+                input.classList.add('form-select');
+                input.style.cursor = 'pointer';
+                
+                // Süre değiştiğinde aşağıdaki badge'i güncelle
+                input.addEventListener('change', function() {
+                    const val = this.value;
+                    const badge = document.getElementById('cost-badge');
+                    badge.innerText = val + (val > 1 ? ' Hours' : ' Hour');
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

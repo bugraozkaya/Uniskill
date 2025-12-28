@@ -1,38 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Add Review - UniSkill</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light d-flex align-items-center justify-content-center" style="height: 100vh;">
+{% extends 'core/base.html' %}
 
-    <div class="card shadow border-0" style="width: 500px;">
-        <div class="card-body p-5">
-            <h4 class="text-center fw-bold mb-4">Session Review</h4>
-            
-            <div class="alert alert-light border text-center">
-                <strong>{{ session.skill.name }}</strong><br>
-                Tutor: {{ session.tutor.get_full_name }}
-            </div>
-
-            <form method="post">
-                {% csrf_token %}
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-6 col-lg-5">
+        
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden bg-white">
+            <div class="card-body p-4 p-md-5">
                 
-                <div class="mb-3">
-                    <label class="fw-bold">Rating</label>
-                    {{ form.rating }}
+                <div class="text-center mb-4">
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 80px; height: 80px;">
+                        <i class="fas fa-star fa-3x"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark">Rate Your Session</h3>
+                    <p class="text-muted">How was your experience?</p>
                 </div>
 
-                <div class="mb-3">
-                    <label class="fw-bold">Your Comment</label>
-                    {{ form.comment }}
+                <div class="bg-light rounded-4 p-3 text-center mb-4 border border-light">
+                    <h5 class="fw-bold text-primary mb-1">{{ session.skill.name }}</h5>
+                    <div class="text-muted small text-uppercase fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1px;">Tutor</div>
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 24px; height: 24px; font-size: 0.8rem;">
+                            {{ session.tutor.first_name|first|upper }}
+                        </div>
+                        <span class="fw-medium text-dark">{{ session.tutor.get_full_name }}</span>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100 py-2">Submit Review</button>
-            </form>
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Rating</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0 ps-3 text-warning"><i class="fas fa-star"></i></span>
+                            {{ form.rating }}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Your Review</label>
+                        {{ form.comment }}
+                        <div class="form-text text-muted small mt-2">
+                            <i class="fas fa-info-circle me-1"></i>Your feedback helps others find great tutors.
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm py-2 transition-hover">
+                            Submit Review <i class="fas fa-paper-plane ms-2"></i>
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-light text-muted rounded-3 py-2">Cancel</a>
+                    </div>
+                </form>
+
+            </div>
         </div>
-    </div>
 
-</body>
-</html>
+    </div>
+</div>
+
+<script>
+    // Django form elemanlarına otomatik modern stil ekle
+    document.addEventListener("DOMContentLoaded", function() {
+        // Tüm input, select ve textarea'ları seç
+        const inputs = document.querySelectorAll('input, select, textarea');
+        
+        inputs.forEach(input => {
+            // Temel sınıfları ekle
+            input.classList.add('form-control', 'bg-light', 'border-0', 'py-3', 'ps-3');
+            
+            // Eğer select kutusu ise (Rating)
+            if (input.tagName === 'SELECT') {
+                input.classList.add('form-select');
+                input.style.cursor = "pointer";
+            }
+            
+            // Eğer textarea ise (Yorum)
+            if (input.tagName === 'TEXTAREA') {
+                input.rows = 4;
+                input.placeholder = "Write your thoughts here...";
+                input.style.resize = "none"; // Boyutlandırmayı kapat
+            }
+        });
+    });
+</script>
+{% endblock %}

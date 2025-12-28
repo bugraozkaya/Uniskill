@@ -1,53 +1,64 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-2 mb-4">
     <div class="row justify-content-center">
-        <div class="col-md-9 col-lg-8">
-            <div class="card shadow-sm border-0" style="height: 80vh; display: flex; flex-direction: column;">
+        <div class="col-lg-9 col-xl-8">
+            
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden" style="height: 85vh; display: flex; flex-direction: column;">
                 
-                <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between sticky-top">
+                <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between z-1 shadow-sm">
                     <div class="d-flex align-items-center">
-                        <a href="{% url 'inbox' %}" class="btn btn-light btn-sm me-3 text-muted">
+                        <a href="{% url 'inbox' %}" class="btn btn-light btn-sm rounded-circle me-3 text-muted d-flex align-items-center justify-content-center transition-hover" style="width: 40px; height: 40px;">
                             <i class="fas fa-arrow-left"></i>
                         </a>
                         
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
-                             style="width: 45px; height: 45px; font-size: 1.2rem;">
-                            {{ other_user.first_name|first|upper }}
+                        <div class="position-relative">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+                                 style="width: 50px; height: 50px; font-size: 1.5rem;">
+                                {{ other_user.first_name|first|upper }}
+                            </div>
+                            <span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle p-1"></span>
                         </div>
                         
-                        <div>
-                            <h6 class="mb-0 fw-bold text-dark">{{ other_user.first_name }} {{ other_user.last_name }}</h6>
-                            <small class="text-muted" style="font-size: 0.8rem;">
-                                <i class="fas fa-graduation-cap me-1"></i>{{ other_user.department|default:"No Department" }}
+                        <div class="ms-3">
+                            <h6 class="mb-0 fw-bold text-dark">{{ other_user.get_full_name }}</h6>
+                            <small class="text-muted d-block" style="font-size: 0.8rem;">
+                                <i class="fas fa-graduation-cap me-1 opacity-50"></i>{{ other_user.profile.department|default:"Student" }}
                             </small>
                         </div>
                     </div>
+                    
+                    <a href="{% url 'public_profile' other_user.id %}" class="btn btn-light btn-sm rounded-circle text-primary transition-hover" title="View Profile">
+                        <i class="fas fa-user"></i>
+                    </a>
                 </div>
 
-                <div class="card-body bg-light overflow-auto p-4" id="chat-box" style="flex: 1;">
+                <div class="card-body bg-light overflow-auto p-4" id="chat-box" style="flex: 1; background-image: radial-gradient(#e2e8f0 1px, transparent 1px); background-size: 20px 20px;">
                     
                     {% if not messages %}
-                        <div class="text-center mt-5 text-muted opacity-50">
-                            <i class="far fa-comments fa-3x mb-3"></i>
-                            <p>No chat history yet.<br>Send the first message!</p>
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
+                            <div class="bg-white p-4 rounded-circle shadow-sm mb-3">
+                                <i class="far fa-comments fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold">No messages yet</h5>
+                            <p class="small text-center">Say hello to start the conversation!</p>
                         </div>
                     {% endif %}
 
                     {% for msg in messages %}
                         {% if msg.sender == user %}
                             <div class="d-flex justify-content-end mb-3">
-                                <div class="message-bubble bg-primary text-white p-3 shadow-sm" 
-                                     style="max-width: 75%; border-radius: 15px 15px 0 15px;">
-                                    <p class="mb-1">{{ msg.body }}</p>
-                                    <div class="text-end">
-                                        <small class="text-white-50" style="font-size: 0.7rem;">
+                                <div class="message-bubble bg-primary text-white p-3 shadow-sm position-relative" 
+                                     style="max-width: 75%; border-radius: 18px 18px 4px 18px;">
+                                    <p class="mb-1 text-break">{{ msg.body }}</p>
+                                    <div class="text-end lh-1 mt-1">
+                                        <small class="text-white-50" style="font-size: 0.65rem;">
                                             {{ msg.created_at|date:"H:i" }}
                                             {% if msg.is_read %}
-                                                <i class="fas fa-check-double ms-1"></i>
+                                                <i class="fas fa-check-double ms-1 text-white"></i>
                                             {% else %}
-                                                <i class="fas fa-check ms-1"></i>
+                                                <i class="fas fa-check ms-1 text-white-50"></i>
                                             {% endif %}
                                         </small>
                                     </div>
@@ -55,11 +66,11 @@
                             </div>
                         {% else %}
                             <div class="d-flex justify-content-start mb-3">
-                                <div class="message-bubble bg-white text-dark p-3 shadow-sm border" 
-                                     style="max-width: 75%; border-radius: 15px 15px 15px 0;">
-                                    <p class="mb-1">{{ msg.body }}</p>
-                                    <div class="text-start">
-                                        <small class="text-muted" style="font-size: 0.7rem;">{{ msg.created_at|date:"H:i" }}</small>
+                                <div class="message-bubble bg-white text-dark p-3 shadow-sm border position-relative" 
+                                     style="max-width: 75%; border-radius: 18px 18px 18px 4px;">
+                                    <p class="mb-1 text-break">{{ msg.body }}</p>
+                                    <div class="text-start lh-1 mt-1">
+                                        <small class="text-muted opacity-75" style="font-size: 0.65rem;">{{ msg.created_at|date:"H:i" }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -70,10 +81,13 @@
                 <div class="card-footer bg-white p-3 border-top">
                     <form method="POST" class="d-flex gap-2 align-items-center">
                         {% csrf_token %}
-                        <input type="text" name="body" class="form-control border-0 bg-light py-3 px-4 rounded-pill shadow-none" 
-                               placeholder="Type a message..." required autocomplete="off" autofocus>
                         
-                        <button type="submit" class="btn btn-primary rounded-circle p-3 shadow-sm transition-hover" 
+                        <div class="input-group shadow-sm rounded-pill overflow-hidden bg-light">
+                            <input type="text" name="body" class="form-control border-0 bg-light py-3 px-4 shadow-none" 
+                                   placeholder="Type a message..." required autocomplete="off" autofocus>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary rounded-circle shadow-sm transition-hover flex-shrink-0" 
                                 style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
                             <i class="fas fa-paper-plane"></i>
                         </button>
@@ -86,10 +100,10 @@
 </div>
 
 <script>
+    // Sayfa yüklendiğinde sohbeti en aşağı kaydır
     document.addEventListener("DOMContentLoaded", function() {
         var chatBox = document.getElementById("chat-box");
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 </script>
-
 {% endblock %}

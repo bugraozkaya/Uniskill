@@ -1,31 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Send Message</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light d-flex align-items-center justify-content-center" style="height: 100vh;">
+{% extends 'core/base.html' %}
 
-    <div class="card shadow border-0" style="width: 500px;">
-        <div class="card-header bg-primary text-white p-3">
-            <h5 class="mb-0">Send Message</h5>
-        </div>
-        <div class="card-body p-4">
-            <p>To: <strong>{{ recipient.first_name }} {{ recipient.last_name }}</strong></p>
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-7 col-lg-6">
+        
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden bg-white">
             
-            <form method="post">
-                {% csrf_token %}
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 text-center">
                 <div class="mb-3">
-                    {{ form.body }}
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-3">
+                        New Message
+                    </span>
                 </div>
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary">Send</button>
-                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                
+                <div class="position-relative d-inline-block mb-3">
+                    <div class="bg-gradient bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-lg" 
+                         style="width: 80px; height: 80px; font-size: 2rem; font-weight: 700;">
+                        {{ recipient.first_name|first|upper }}
+                    </div>
+                    <div class="position-absolute bottom-0 end-0 bg-success border border-4 border-white rounded-circle p-2"></div>
                 </div>
-            </form>
-        </div>
-    </div>
 
-</body>
-</html>
+                <h4 class="fw-bold text-dark mb-1">To: {{ recipient.get_full_name }}</h4>
+                <p class="text-muted small">
+                    <i class="fas fa-university me-1 opacity-50"></i>
+                    {{ recipient.profile.department|default:"Student" }}
+                </p>
+            </div>
+
+            <div class="card-body p-4 p-md-5 pt-2">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Your Message</label>
+                        <div class="shadow-sm rounded-4 overflow-hidden">
+                            {{ form.body }}
+                        </div>
+                        <div class="form-text text-muted small mt-2">
+                            <i class="fas fa-shield-alt me-1"></i>Be respectful and clear in your communication.
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm py-2 transition-hover">
+                            Send Message <i class="fas fa-paper-plane ms-2"></i>
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-light text-muted rounded-3 py-2 fw-medium">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Django form elemanlarına otomatik modern stil ekle
+    document.addEventListener("DOMContentLoaded", function() {
+        const input = document.querySelector('textarea'); // Sadece textarea var
+        if (input) {
+            input.classList.add('form-control', 'bg-light', 'border-0', 'p-3');
+            input.rows = 6;
+            input.placeholder = "Hi {{ recipient.first_name }}, I would like to ask about...";
+            input.style.resize = "none"; 
+        }
+    });
+</script>
+{% endblock %}

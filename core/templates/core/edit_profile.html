@@ -1,36 +1,109 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Profile - UniSkill</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card shadow border-0">
-                    <div class="card-header bg-primary text-white fw-bold">Edit Profile</div>
-                    <div class="card-body">
-                        <form method="POST">
-                            {% csrf_token %}
-                            <h6 class="text-muted border-bottom pb-2">Personal Information</h6>
-                            <div class="mb-3">
-                                {{ u_form.as_p }}
-                            </div>
-                            <h6 class="text-muted border-bottom pb-2">Academic Information</h6>
-                            <div class="mb-3">
-                                {{ p_form.as_p }}
-                            </div>
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-success fw-bold">Update</button>
-                                <a href="{% url 'dashboard' %}" class="btn btn-light">Cancel</a>
-                            </div>
-                        </form>
-                    </div>
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center mb-5">
+    <div class="col-md-8 col-lg-6">
+        
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden bg-white">
+            
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 text-center">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 70px; height: 70px;">
+                    <i class="fas fa-user-edit fa-2x"></i>
                 </div>
+                <h3 class="fw-bold text-dark">Update Profile</h3>
+                <p class="text-muted">Keep your personal details up to date.</p>
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase text-muted small letter-spacing-1 mb-3 border-bottom pb-2">
+                            <i class="fas fa-id-card me-2 text-primary"></i>Account Information
+                        </h6>
+                        
+                        {% for field in u_form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-dark">{{ field.label }}</label>
+                            <div class="input-group shadow-sm rounded-3">
+                                <span class="input-group-text bg-light border-0 ps-3 text-muted">
+                                    <i class="fas fa-pen small"></i>
+                                </span>
+                                {{ field }}
+                            </div>
+                            {% if field.help_text %}
+                                <div class="form-text text-muted small ms-1">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small mt-1 ms-1 fw-bold">
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase text-muted small letter-spacing-1 mb-3 border-bottom pb-2 mt-4">
+                            <i class="fas fa-graduation-cap me-2 text-primary"></i>Academic Details
+                        </h6>
+
+                        {% for field in p_form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-dark">{{ field.label }}</label>
+                            <div class="input-group shadow-sm rounded-3">
+                                <span class="input-group-text bg-light border-0 ps-3 text-muted">
+                                    <i class="fas fa-university small"></i>
+                                </span>
+                                {{ field }}
+                            </div>
+                            {% if field.help_text %}
+                                <div class="form-text text-muted small ms-1">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small mt-1 ms-1 fw-bold">
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid gap-2 mt-5">
+                        <button type="submit" class="btn btn-success btn-lg rounded-3 fw-bold shadow-sm py-2 transition-hover">
+                            Save Changes <i class="fas fa-check-circle ms-2"></i>
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-light text-muted rounded-3 py-2 fw-medium">Cancel</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+
+<script>
+    // Django form elemanlarına otomatik modern stil ekle
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('input, select, textarea');
+        
+        inputs.forEach(input => {
+            // Checkbox değilse standart stil uygula
+            if (input.type !== 'checkbox' && input.type !== 'file') {
+                input.classList.add('form-control', 'bg-light', 'border-0', 'py-2', 'ps-3');
+            }
+            
+            // Select kutusu ise
+            if (input.tagName === 'SELECT') {
+                input.classList.add('form-select');
+                input.style.cursor = 'pointer';
+            }
+
+            // Dosya yükleme alanı ise (varsa)
+            if (input.type === 'file') {
+                input.classList.add('form-control', 'bg-light');
+            }
+        });
+    });
+</script>
+{% endblock %}
