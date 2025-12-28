@@ -10,7 +10,8 @@ from django.core.cache import cache
 from django.utils.dateparse import parse_datetime
 from .forms import UserUpdateForm, ProfileUpdateForm
 from django.contrib.auth import get_user_model
-
+from django.shortcuts import render, redirect
+from .forms import OgrenciKayitFormu, UserUpdateForm, ProfileUpdateForm, UserSkillForm, DersTalepFormu
 from .forms import CustomUserCreationForm, UserUpdateForm, ProfileUpdateForm
 
 User = get_user_model()
