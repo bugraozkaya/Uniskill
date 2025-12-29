@@ -267,6 +267,7 @@ def search_skills(request):
     query = request.GET.get('q')
     category_code = request.GET.get('category')
     min_rating = request.GET.get('rating')
+    sort_by = request.GET.get('sort') # <--- NEW: Get sorting parameter
 
     if query:
         skills = skills.filter(
@@ -282,13 +283,20 @@ def search_skills(request):
     if min_rating:
         skills = skills.filter(average_rating__gte=int(min_rating))
 
-    skills = skills.order_by('-average_rating', '-id')
+    # --- SORTING LOGIC (UPDATED) ---
+    if sort_by == 'rating':
+        # Highest to lowest rating
+        skills = skills.order_by('-average_rating', '-id')
+    else:
+        # Relevance (Default): Newest to oldest (Highest ID is newest)
+        skills = skills.order_by('-id')
 
     context = {
         'skills': skills,
         'categories': CATEGORY_CHOICES,
         'selected_category': category_code,
         'selected_rating': min_rating,
+        'selected_sort': sort_by, # <--- Pass to template to keep selected
         'query': query
     }
     return render(request, 'core/search_skills.html', context)

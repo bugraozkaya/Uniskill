@@ -1,143 +1,144 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
-<div class="row justify-content-center mb-5">
-    <div class="col-lg-12">
-        
-        <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-5 bg-white">
-            <div class="card-body p-4 p-lg-5 text-center">
-                
-                <h2 class="fw-bold mb-3" style="background: linear-gradient(45deg, #4f46e5, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                    Find Your Perfect Tutor
-                </h2>
-                <p class="text-muted mb-4">Search among hundreds of skills and start learning today.</p>
-                
-                <form method="get" class="row g-2 justify-content-center">
-                    <div class="col-lg-4 col-md-12">
-                        <div class="input-group shadow-sm rounded-3">
-                            <span class="input-group-text bg-light border border-end-0 ps-3 text-muted"><i class="fas fa-search"></i></span>
-                            <input type="text" name="q" class="form-control border border-start-0 py-3 bg-light" 
-                                   placeholder="What do you want to learn?" 
-                                   value="{{ query|default:'' }}">
-                        </div>
-                    </div>
+<div class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-12">
+            
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-5 bg-white">
+                <div class="card-body p-4 p-lg-5 text-center">
                     
-                    <div class="col-lg-3 col-md-6">
-                        <div class="input-group shadow-sm rounded-3">
-                            <span class="input-group-text bg-light border border-end-0 ps-3 text-muted"><i class="fas fa-filter"></i></span>
-                            <select name="category" class="form-select border border-start-0 py-3 bg-light text-muted" style="cursor: pointer;">
-                                <option value="all">All Categories</option>
-                                {% for code, name in categories %}
-                                    <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>{{ name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-3 col-md-6">
-                        <div class="input-group shadow-sm rounded-3">
-                            <span class="input-group-text bg-light border border-end-0 ps-3 text-muted"><i class="fas fa-sort-amount-down"></i></span>
-                            <select name="sort" class="form-select border border-start-0 py-3 bg-light text-muted" style="cursor: pointer;">
-                                <option value="relevance" {% if request.GET.sort == 'relevance' %}selected{% endif %}>Relevance</option>
-                                <option value="rating" {% if request.GET.sort == 'rating' %}selected{% endif %}>Highest Rated</option>
-                                <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>Newest</option>
-                            </select>
-                        </div>
-                    </div>
+                    <h2 class="fw-bold mb-3" style="background: linear-gradient(45deg, #4f46e5, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                        Find Your Perfect Tutor
+                    </h2>
+                    <p class="text-muted mb-4">Search among hundreds of skills and start learning today.</p>
                     
-                    <div class="col-lg-2 col-md-12">
-                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm transition-hover">
-                            Search
-                        </button>
-                    </div>
-
-                    {% if query or selected_category or request.GET.sort %}
-                    <div class="col-12 mt-4">
-                        <a href="{% url 'search_skills' %}" class="btn btn-white bg-white border shadow-sm rounded-pill px-4 py-2 text-muted fw-medium transition-hover d-inline-flex align-items-center gap-2">
-                            <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
-                                <i class="fas fa-times fa-xs"></i>
+                    <form method="get" class="row g-2 justify-content-center">
+                        <div class="col-lg-4 col-md-12">
+                            <div class="input-group shadow-sm rounded-3">
+                                <span class="input-group-text bg-light border border-end-0 ps-3 text-muted"><i class="fas fa-search"></i></span>
+                                <input type="text" name="q" class="form-control border border-start-0 py-3 bg-light" 
+                                       placeholder="What do you want to learn?" 
+                                       value="{{ query|default:'' }}">
                             </div>
-                            <span>Clear Filters</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                </form>
+                        </div>
+                        
+                        <div class="col-lg-3 col-md-6">
+                            <div class="input-group shadow-sm rounded-3">
+                                <span class="input-group-text bg-light border border-end-0 ps-3 text-muted"><i class="fas fa-filter"></i></span>
+                                <select name="category" class="form-select border border-start-0 py-3 bg-light text-muted" style="cursor: pointer;">
+                                    <option value="all">All Categories</option>
+                                    {% for code, name in categories %}
+                                        <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <div class="input-group shadow-sm rounded-3">
+                                <span class="input-group-text bg-light border border-end-0 ps-3 text-muted"><i class="fas fa-sort-amount-down"></i></span>
+                                <select name="sort" class="form-select border border-start-0 py-3 bg-light text-muted" style="cursor: pointer;" onchange="this.form.submit()">
+                                    <option value="relevance" {% if selected_sort == 'relevance' or not selected_sort %}selected{% endif %}>Relevance (Newest)</option>
+                                    <option value="rating" {% if selected_sort == 'rating' %}selected{% endif %}>Highest Rated</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-2 col-md-12">
+                            <button type="submit" class="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-sm transition-hover">
+                                Search
+                            </button>
+                        </div>
+
+                        {% if query or selected_category or selected_sort %}
+                        <div class="col-12 mt-4">
+                            <a href="{% url 'search_skills' %}" class="btn btn-white bg-white border shadow-sm rounded-pill px-4 py-2 text-muted fw-medium transition-hover d-inline-flex align-items-center gap-2">
+                                <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                    <i class="fas fa-times fa-xs"></i>
+                                </div>
+                                <span>Clear Filters</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
             </div>
-        </div>
 
-        <div class="row">
-            {% if skills %}
-                {% for item in skills %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 border-0 shadow-sm rounded-4 transition-hover bg-white overflow-hidden group-hover-card">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 border border-primary-subtle">
-                                    {{ item.skill.get_category_display }}
-                                </span>
+            <div class="row">
+                {% if skills %}
+                    {% for item in skills %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 border-0 shadow-sm rounded-4 transition-hover bg-white overflow-hidden group-hover-card">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 border border-primary-subtle">
+                                        {{ item.skill.get_category_display }}
+                                    </span>
+                                    
+                                    <a href="{% url 'public_profile' item.user.id %}" class="text-decoration-none d-flex align-items-center gap-2 group-hover-text">
+                                        <div class="bg-light text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold small shadow-sm" style="width: 32px; height: 32px;">
+                                            {{ item.user.first_name|first|upper }}
+                                        </div>
+                                        <small class="fw-bold text-dark">{{ item.user.first_name }}</small>
+                                    </a>
+                                </div>
                                 
-                                <a href="{% url 'public_profile' item.user.id %}" class="text-decoration-none d-flex align-items-center gap-2 group-hover-text">
-                                    <div class="bg-light text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold small shadow-sm" style="width: 32px; height: 32px;">
-                                        {{ item.user.first_name|first|upper }}
-                                    </div>
-                                    <small class="fw-bold text-dark">{{ item.user.first_name }}</small>
-                                </a>
-                            </div>
-                            
-                            <h4 class="card-title fw-bold text-dark mb-2">{{ item.skill.name }}</h4>
-                            <p class="card-text text-muted small mb-4 line-clamp-2" style="min-height: 40px;">
-                                {{ item.description|default:"No description provided by the tutor yet." }}
-                            </p>
-                            
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <small class="text-muted bg-light px-2 py-1 rounded">
-                                    <i class="fas fa-map-marker-alt me-1 text-danger opacity-75"></i> {{ item.get_location_display }}
-                                </small>
+                                <h4 class="card-title fw-bold text-dark mb-2">{{ item.skill.name }}</h4>
+                                <p class="card-text text-muted small mb-4 line-clamp-2" style="min-height: 40px;">
+                                    {{ item.description|default:"No description provided by the tutor yet." }}
+                                </p>
                                 
-                                {% if item.average_rating %}
-                                    <div class="d-flex align-items-center text-warning" title="Rating: {{ item.average_rating|floatformat:1 }}">
-                                        <i class="fas fa-star me-1"></i>
-                                        <span class="fw-bold text-dark">{{ item.average_rating|floatformat:1 }}</span>
-                                    </div>
-                                {% else %}
-                                    <span class="badge bg-light text-muted border">New</span>
-                                {% endif %}
-                            </div>
-                            
-                            <hr class="opacity-10">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <small class="text-muted bg-light px-2 py-1 rounded">
+                                        <i class="fas fa-map-marker-alt me-1 text-danger opacity-75"></i> {{ item.get_location_display }}
+                                    </small>
+                                    
+                                    {% if item.average_rating %}
+                                        <div class="d-flex align-items-center text-warning" title="Rating: {{ item.average_rating|floatformat:1 }}">
+                                            <i class="fas fa-star me-1"></i>
+                                            <span class="fw-bold text-dark">{{ item.average_rating|floatformat:1 }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="badge bg-light text-muted border">New</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <hr class="opacity-10">
 
-                            <div class="d-grid gap-2">
-                                {% if item.user.id != request.user.id %}
-                                    <a href="{% url 'request_session' item.id %}" class="btn btn-primary fw-bold py-2 rounded-3 shadow-sm">
-                                        Request Session
-                                    </a>
-                                    <a href="{% url 'send_message' item.user.id %}" class="btn btn-outline-primary fw-bold py-2 rounded-3">
-                                        Ask Question
-                                    </a>
-                                {% else %}
-                                    <button class="btn btn-light text-muted w-100" disabled>This is you</button>
-                                {% endif %}
+                                <div class="d-grid gap-2">
+                                    {% if item.user.id != request.user.id %}
+                                        <a href="{% url 'request_session' item.id %}" class="btn btn-primary fw-bold py-2 rounded-3 shadow-sm">
+                                            Request Session
+                                        </a>
+                                        <a href="{% url 'send_message' item.user.id %}" class="btn btn-outline-primary fw-bold py-2 rounded-3">
+                                            Ask Question
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-light text-muted w-100" disabled>This is you</button>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="col-12 text-center py-5">
-                    <div class="bg-white p-5 rounded-4 shadow-sm d-inline-block">
-                        <i class="fas fa-search fa-3x text-muted mb-3 opacity-50"></i>
-                        <h4 class="fw-bold text-dark">No skills found</h4>
-                        <p class="text-muted">Try changing keywords or removing filters.</p>
-                        <a href="{% url 'search_skills' %}" class="btn btn-outline-primary rounded-pill px-4">Clear All Filters</a>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12 text-center py-5">
+                        <div class="bg-white p-5 rounded-4 shadow-sm d-inline-block">
+                            <i class="fas fa-search fa-3x text-muted mb-3 opacity-50"></i>
+                            <h4 class="fw-bold text-dark">No skills found</h4>
+                            <p class="text-muted">Try changing keywords or removing filters.</p>
+                            <a href="{% url 'search_skills' %}" class="btn btn-outline-primary rounded-pill px-4">Clear All Filters</a>
+                        </div>
                     </div>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-    /* 2 satırdan sonrasını ... ile kesme stili */
+    /* Truncate text after 2 lines */
     .line-clamp-2 {
         display: -webkit-box;
         -webkit-line-clamp: 2;
