@@ -50,55 +50,66 @@ class CustomLoginView(LoginView):
 
     def get(self, request, *args, **kwargs):
         ip = self.get_client_ip(request)
-        expiry_time = cache.get(f'blocked_{ip}')
         
-        if expiry_time:
-            remaining = int(expiry_time - time.time())
+        # 1. Check if IP is blocked (On initial page load)
+        # We use 'user_blocked_' prefix to avoid conflict with Admin middleware.
+        blocked_expiry = cache.get(f'user_blocked_{ip}')
+        
+        if blocked_expiry:
+            remaining = int(blocked_expiry - time.time())
             if remaining > 0:
-                context = self.get_context_data()
-                context['wait_time'] = remaining
-                messages.error(request, f"⛔ Too many attempts. Please wait {remaining} seconds.")
-                return self.render_to_response(context)
+                # SMART TEMPLATE USAGE:
+                # Since this is a normal user, we set next_url to '/login/'
+                return render(request, 'core/login_blocked.html', {
+                    'remaining': remaining,
+                    'next_url': '/login/' 
+                })
         
         return super().get(request, *args, **kwargs)
 
-    def post(self, request, *args, **kwargs):
-        ip = self.get_client_ip(request)
-        if cache.get(f'blocked_{ip}'):
-            return self.render_to_response(self.get_context_data())
-        return super().post(request, *args, **kwargs)
-
     def form_invalid(self, form):
         ip = self.get_client_ip(self.request)
-        fail_key = f'login_fail_v2_{ip}'
-        current_count = cache.get(fail_key, 0)
-        new_count = current_count + 1
+        fail_key = f'user_fail_{ip}'
         
-        cache.set(fail_key, new_count, 60)
-        remaining = 3 - new_count
-        context = self.get_context_data(form=form)
+        # Increment failed login count
+        count = cache.get(fail_key, 0) + 1
+        cache.set(fail_key, count, 300) # Keep attempts in memory for 5 minutes
         
-        if new_count >= 3:
+        remaining_attempts = 3 - count
+
+        # If 3 attempts reached, block
+        if count >= 3:
             expiry_time = time.time() + 30
-            cache.set(f'blocked_{ip}', expiry_time, 30)
-            context['wait_time'] = 30 
-            messages.error(self.request, f"⛔ {new_count} failed attempts! You are blocked for 30 seconds.")
-        else:
-            messages.warning(self.request, f"⚠️ Incorrect password! ({new_count}. Attempt) - Remaining attempts: {remaining}")
+            cache.set(f'user_blocked_{ip}', expiry_time, 30)
             
-        return self.render_to_response(context)
+            # Clear the fail counter so it starts fresh after the block expires
+            cache.delete(fail_key)
+            
+            # Send to blocked page
+            return render(self.request, 'core/login_blocked.html', {
+                'remaining': 30,
+                'next_url': '/login/'
+            })
+
+        # If attempts remain, show warning message
+        if remaining_attempts > 0:
+            messages.error(self.request, f"⚠️ Incorrect password! (Attempt {count}) - Remaining attempts: {remaining_attempts}")
+
+        return super().form_invalid(form)
 
     def form_valid(self, form):
-        user = form.get_user()
+        # Login successful, clear all counters and blocks
         ip = self.get_client_ip(self.request)
+        cache.delete(f'user_fail_{ip}')
+        cache.delete(f'user_blocked_{ip}')
+        
+        # Check for unapproved users
+        user = form.get_user()
+        if hasattr(user, 'profile') and user.profile.status != 'active':
+             messages.error(self.request, "Your account has not been approved by the Admin yet.")
+             return self.render_to_response(self.get_context_data(form=form))
 
-        if not hasattr(user, 'profile') or user.profile.status != 'active':
-            messages.error(self.request, "Your account has not been approved by the Admin yet. Please wait.")
-            return self.render_to_response(self.get_context_data(form=form))
-
-        cache.delete(f'login_fail_v2_{ip}') 
-        cache.delete(f'blocked_{ip}')
-        return super().form_valid(form)
+        return super().form_valid(form) 
 
 def register(request):
     if request.method == 'POST':
@@ -184,7 +195,7 @@ def public_profile(request, user_id):
 def dashboard(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     
-    # Tüm oturumları getir
+    # Get all sessions
     all_sessions = Session.objects.filter(
         Q(student=request.user) | Q(tutor=request.user)
     ).order_by('date')
@@ -192,32 +203,32 @@ def dashboard(request):
     my_sessions = []
     past_sessions = []
 
-    # Geçmiş ve gelecek oturumları ayır
+    # Separate past and future sessions
     for session in all_sessions:
         if session.status in ['cancelled', 'completed'] or session.is_expired:
             past_sessions.append(session)
         else:
             my_sessions.append(session)
     
-    past_sessions.reverse() # En yeniden eskiye sırala
+    past_sessions.reverse() # Sort from newest to oldest
 
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # --- GÜNCELLENEN KISIM BAŞLANGIÇ ---
-    # Geçmiş oturumlar için inceleme (review) kontrolü
+    # --- UPDATED SECTION START ---
+    # Check for reviews on past sessions
     for session in past_sessions:
-        # İlgili oturum için yapılmış yorumu bul
+        # Find the review for this session
         review = Review.objects.filter(session=session).first()
         
         if review:
             session.is_rated = True
-            session.user_rating = review.rating  # Puanı (Örn: 4, 5) template'e taşımak için ekle
+            session.user_rating = review.rating  # Pass score to template
         else:
             session.is_rated = False
             session.user_rating = None
-    # --- GÜNCELLENEN KISIM BİTİŞ ---
+    # --- UPDATED SECTION END ---
 
-    # İstatistikler
+    # Statistics
     lessons_given_count = Session.objects.filter(tutor=request.user, status='completed').count()
     my_rating = Review.objects.filter(session__tutor=request.user).aggregate(Avg('rating'))['rating__avg']
 
@@ -358,24 +369,23 @@ def cancel_session(request, session_id):
 def add_review(request, session_id):
     session = get_object_or_404(Session, id=session_id)
     
-    # 1. Kontrol: Öğrenci mi?
+    # 1. Check: Is it the student?
     if request.user != session.student:
         messages.error(request, "Only the student who took the session can leave a review.")
         return redirect('dashboard')
         
-    # 2. Kontrol: Ders bitti mi?
+    # 2. Check: Is session completed?
     if session.status != 'completed':
         messages.error(request, "You cannot review a session that is not completed.")
         return redirect('dashboard')
 
-    # 3. KONTROL (YENİ EKLENEN): Zaten yorum yapılmış mı?
-    # Eğer bu derse ait bir yorum varsa, hata verme, nazikçe uyar ve ana sayfaya dön.
+    # 3. CHECK (NEW): Has it already been reviewed?
     if Review.objects.filter(session=session).exists():
         messages.warning(request, "You have already reviewed this session.")
         return redirect('dashboard')
 
     if request.method == 'POST':
-        form = DegerlendirmeFormu(request.POST) # Senin form isminle aynı bıraktım
+        form = DegerlendirmeFormu(request.POST) # Kept form name same
         if form.is_valid():
             review = form.save(commit=False)
             review.session = session

@@ -10,16 +10,16 @@
                 </div>
             </div>
             
-            <h2 class="fw-bold text-dark mb-3">Admin Access Denied</h2>
+            <h2 class="fw-bold text-dark mb-3">Access Denied</h2>
             <p class="text-muted mb-4">
-                Too many failed login attempts detected. For security reasons, administrative access has been temporarily restricted.
+                Too many failed login attempts detected. For security reasons, your access has been temporarily restricted.
             </p>
             
             <div id="status-container" class="alert alert-warning border-0 rounded-3 py-3 mb-4">
                 <i class="fas fa-hourglass-half me-2"></i>
-                Please wait <strong id="timer">30</strong> seconds. 
+                Please wait <strong id="timer">{{ remaining }}</strong> seconds. 
                 <br>
-                <small class="opacity-75">You will be redirected to the login page automatically.</small>
+                <small class="opacity-75">You will be redirected automatically.</small>
             </div>
             
             <div class="d-grid gap-2">
@@ -32,8 +32,10 @@
 </div>
 
 <script>
-    // Dinamik Geri Sayım ve Otomatik Yönlendirme
-    let timeLeft = 30; 
+    // Get the duration from the 'remaining' variable passed from the Backend
+    // If no data is provided, default to 30 seconds.
+    let timeLeft = {{ remaining|default:30 }}; 
+    
     const timerElement = document.getElementById('timer');
     const statusContainer = document.getElementById('status-container');
 
@@ -43,24 +45,24 @@
             timerElement.innerText = timeLeft;
         }
 
-        // Süre bittiğinde
+        // When time is up
         if (timeLeft <= 0) {
             clearInterval(countdown);
             
-            // Kullanıcıya bilgi ver
+            // Inform the user
             statusContainer.className = "alert alert-success border-0 rounded-3 py-3 mb-4 animate__animated animate__fadeIn";
-            statusContainer.innerHTML = '<i class="fas fa-check-circle me-2"></i> <strong>Time is up!</strong> Redirecting to login...';
+            statusContainer.innerHTML = '<i class="fas fa-check-circle me-2"></i> <strong>Time is up!</strong> Redirecting...';
             
-            // 1.5 saniye sonra yönlendir (kullanıcı mesajı okuyabilsin diye)
+            // REDIRECT after 1.5 seconds (Go to next_url provided by the View)
             setTimeout(() => {
-                window.location.href = "/admin/login/";
+                window.location.href = "{{ next_url|default:'/login/' }}";
             }, 1500);
         }
     }, 1000);
 </script>
 
 <style>
-    /* Küçük bir nabız efekti için */
+    /* For a small pulse effect */
     @keyframes pulse {
         0% { transform: scale(1); }
         50% { transform: scale(1.05); }
