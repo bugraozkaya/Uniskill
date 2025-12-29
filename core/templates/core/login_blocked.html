@@ -1,0 +1,73 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 70vh;">
+    <div class="col-md-6">
+        <div class="card p-5 border-0 shadow-lg rounded-4 text-center">
+            <div class="mb-4">
+                <div class="display-1 text-danger animate__animated animate__pulse animate__infinite">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+            </div>
+            
+            <h2 class="fw-bold text-dark mb-3">Admin Access Denied</h2>
+            <p class="text-muted mb-4">
+                Too many failed login attempts detected. For security reasons, administrative access has been temporarily restricted.
+            </p>
+            
+            <div id="status-container" class="alert alert-warning border-0 rounded-3 py-3 mb-4">
+                <i class="fas fa-hourglass-half me-2"></i>
+                Please wait <strong id="timer">30</strong> seconds. 
+                <br>
+                <small class="opacity-75">You will be redirected to the login page automatically.</small>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <a href="/" class="btn btn-light rounded-pill fw-semibold py-2">
+                    <i class="fas fa-home me-2"></i>Return Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dinamik Geri Sayım ve Otomatik Yönlendirme
+    let timeLeft = 30; 
+    const timerElement = document.getElementById('timer');
+    const statusContainer = document.getElementById('status-container');
+
+    const countdown = setInterval(() => {
+        timeLeft--;
+        if (timerElement) {
+            timerElement.innerText = timeLeft;
+        }
+
+        // Süre bittiğinde
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            
+            // Kullanıcıya bilgi ver
+            statusContainer.className = "alert alert-success border-0 rounded-3 py-3 mb-4 animate__animated animate__fadeIn";
+            statusContainer.innerHTML = '<i class="fas fa-check-circle me-2"></i> <strong>Time is up!</strong> Redirecting to login...';
+            
+            // 1.5 saniye sonra yönlendir (kullanıcı mesajı okuyabilsin diye)
+            setTimeout(() => {
+                window.location.href = "/admin/login/";
+            }, 1500);
+        }
+    }, 1000);
+</script>
+
+<style>
+    /* Küçük bir nabız efekti için */
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .animate__pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+{% endblock %}
