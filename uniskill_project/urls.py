@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect # <--- YENİ: Yönlendirme için bunu ekledik
 from core import views
 
 # Importing view functions directly
@@ -16,8 +17,17 @@ from core.views import (
 )
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # --- GÜVENLİK GÜNCELLEMESİ ---
     
+    # 1. YENİ GİZLİ ADMİN GİRİŞİ (Senin belirlediğin)
+    path('uniskill-yonetim-2025/', admin.site.urls),
+
+    # 2. SAHTE ADMİN TUZAĞI
+    # /admin/ yazanları ana sayfaya şutluyoruz
+    path('admin/', lambda request: redirect('/')),
+    
+    # -----------------------------
+
     # Homepage and Authentication
     path('', dashboard, name='dashboard'),
     path('login/', CustomLoginView.as_view(), name='login'),
