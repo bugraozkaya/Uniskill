@@ -37,11 +37,17 @@
                         {% for chat in conversations %}
                         <a href="{% url 'chat_detail' chat.user.id %}" class="list-group-item list-group-item-action border-0 p-4 border-bottom d-flex align-items-center gap-3 transition-hover position-relative">
                             
-                            <div class="flex-shrink-0">
-                                <div class="bg-gradient bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" 
-                                     style="width: 60px; height: 60px; font-size: 1.4rem; font-weight: bold;">
-                                    {{ chat.user.first_name|first|upper }}
-                                </div>
+                            <div class="flex-shrink-0 position-relative">
+                                <img src="{{ chat.user.profile.avatar.url }}" 
+                                     class="rounded-circle shadow-sm border border-2 border-white" 
+                                     style="width: 60px; height: 60px; object-fit: cover;" 
+                                     alt="{{ chat.user.first_name }}">
+                                
+                                {% if chat.last_message.recipient == user and not chat.last_message.is_read %}
+                                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                                        <span class="visually-hidden">New alerts</span>
+                                    </span>
+                                {% endif %}
                             </div>
 
                             <div class="flex-grow-1 overflow-hidden">
@@ -59,7 +65,7 @@
                                         {% if chat.last_message.sender == user %}
                                             <span class="text-primary fw-bold me-1">You:</span>
                                         {% endif %}
-                                        {{ chat.last_message.body }}
+                                        {{ chat.last_message.content }}
                                     </p>
 
                                     {% if chat.last_message.recipient == user and not chat.last_message.is_read %}
