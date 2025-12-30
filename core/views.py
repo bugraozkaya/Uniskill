@@ -522,3 +522,15 @@ def mark_notification_as_read(request, notification_id):
     
     # Link varsa git, yoksa dashboard'a
     return redirect(notification.link if notification.link else 'dashboard')
+
+
+# ---------------------------------------------------------
+# 4. LANDING PAGE
+# ---------------------------------------------------------
+
+def landing_page(request):
+    # Eğer kullanıcı zaten giriş yapmışsa, vitrini gösterme, direkt içeri al.
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    # Giriş yapmamışsa vitrin (landing) sayfasını göster.
+    return render(request, 'core/landing.html')

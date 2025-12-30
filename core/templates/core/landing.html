@@ -1,0 +1,117 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-5 mb-5">
+    <div class="row align-items-center text-center text-lg-start">
+        <div class="col-lg-6 order-2 order-lg-1">
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-3 fw-medium letter-spacing-1 shadow-sm border border-primary-subtle">
+                <i class="fas fa-rocket me-2"></i>Sivas Science & Tech University
+            </span>
+            <h1 class="display-3 fw-bold text-dark mb-3 lh-sm">
+                Share Your Skills,<br>
+                <span style="background: linear-gradient(45deg, #4f46e5, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Learn Together.</span>
+            </h1>
+            <p class="lead text-muted mb-5 w-lg-75">
+                UniSkill is the talent exchange platform for students. Teach what you know, earn credits, and learn new skills from your peers – all for free.
+            </p>
+            <div class="d-flex gap-3 justify-content-center justify-content-lg-start">
+                <a href="{% url 'register' %}" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow-lg transition-hover">
+                    Get Started <i class="fas fa-arrow-right ms-2"></i>
+                </a>
+                <a href="#how-it-works" class="btn btn-light text-primary btn-lg rounded-pill px-4 fw-semibold transition-hover">
+                    How it works?
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-6 order-1 order-lg-2 mb-5 mb-lg-0 text-center">
+            <div class="position-relative d-inline-block floating-animation">
+                <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 350px; height: 350px;">
+                    <i class="fas fa-laptop-code text-primary" style="font-size: 10rem;"></i>
+                </div>
+                <div class="position-absolute top-0 end-0 bg-white p-3 rounded-4 shadow-lg bounce-animation">
+                    <i class="fas fa-lightbulb text-warning fa-2x"></i>
+                </div>
+                <div class="position-absolute bottom-0 start-0 bg-white p-3 rounded-4 shadow-lg bounce-animation" style="animation-delay: 1s;">
+                    <i class="fas fa-graduation-cap text-success fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5 mb-5" id="how-it-works">
+    <div class="row justify-content-center text-center mb-5">
+        <div class="col-lg-7">
+            <h6 class="text-primary text-uppercase letter-spacing-1 fw-bold mb-3">How UniSkill Works</h6>
+            <h2 class="fw-bold text-dark display-6">A Simple Way to Exchange Knowledge</h2>
+        </div>
+    </div>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-5 p-4 text-center transition-hover bg-white">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-4 d-inline-flex mb-4" style="width: 80px; height: 80px;">
+                    <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                </div>
+                <h4 class="fw-bold text-dark">1. Teach & Earn</h4>
+                <p class="text-muted">Add your skills (e.g., Python, Guitar) and give lessons. Earn time credits for every hour you teach.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-5 p-4 text-center transition-hover bg-white">
+                <div class="bg-success bg-opacity-10 text-success rounded-circle p-4 d-inline-flex mb-4" style="width: 80px; height: 80px;">
+                    <i class="fas fa-search fa-2x"></i>
+                </div>
+                <h4 class="fw-bold text-dark">2. Find & Request</h4>
+                <p class="text-muted">Search for skills you want to learn. Find a tutor and request a session using your credits.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-5 p-4 text-center transition-hover bg-white">
+                <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-4 d-inline-flex mb-4" style="width: 80px; height: 80px;">
+                    <i class="fas fa-rocket fa-2x"></i>
+                </div>
+                <h4 class="fw-bold text-dark">3. Learn & Grow</h4>
+                <p class="text-muted">Meet online or on campus, learn something new, and grow your network within the university.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5 mb-5">
+    <div class="bg-primary text-white rounded-5 p-5 text-center shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #4f46e5, #2563eb);">
+        
+        <div class="position-absolute top-0 start-0 translate-middle rounded-circle bg-white" style="width: 300px; height: 300px; opacity: 0.1; z-index: 0;"></div>
+        <div class="position-absolute bottom-0 end-0 translate-middle rounded-circle bg-white" style="width: 400px; height: 400px; opacity: 0.1; z-index: 0;"></div>
+
+        <div class="position-relative" style="z-index: 1;">
+            <h2 class="fw-bold display-5 mb-3">Ready to join the community?</h2>
+            <p class="lead opacity-75 mb-4 col-lg-8 mx-auto">Start sharing your talents and learning from others today. It's completely free for university students.</p>
+            
+            <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg rounded-pill px-5 fw-bold shadow transition-hover">
+                Create Free Account
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .letter-spacing-1 { letter-spacing: 1px; }
+    
+    /* Görselin havada süzülme animasyonu */
+    .floating-animation { animation: float 6s ease-in-out infinite; }
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+        100% { transform: translateY(0px); }
+    }
+
+    /* Küçük ikonların zıplama animasyonu */
+    .bounce-animation { animation: bounce 3s ease-in-out infinite; }
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .hover-text-primary:hover { color: var(--primary-color) !important; }
+</style>
+{% endblock %}

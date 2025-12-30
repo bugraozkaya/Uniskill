@@ -5,8 +5,10 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 from core import views
 
-# Importing view functions directly
+# View fonksiyonlarını import ediyoruz
 from core.views import (
+    # --- YENİ EKLENDİ: landing_page ---
+    landing_page, 
     dashboard, register, logout_view, add_skill, 
     search_skills, request_session, complete_session, 
     add_review, admin_stats, inbox, send_message,
@@ -14,57 +16,57 @@ from core.views import (
     meeting_room, cancel_session,
     new_chat, chat_detail,
     public_profile, edit_profile,
-    mark_notification_as_read  # <--- YENİ EKLENDİ
+    mark_notification_as_read
 )
 
 urlpatterns = [
-    # --- GÜVENLİK GÜNCELLEMESİ ---
-    
-    # 1. YENİ GİZLİ ADMİN GİRİŞİ
+    # --- GÜVENLİK ---
     path('uniskill-yonetim-2025/', admin.site.urls),
-
-    # 2. SAHTE ADMİN TUZAĞI
     path('admin/', lambda request: redirect('/')),
-    
-    # -----------------------------
 
-    # Homepage and Authentication
-    path('', dashboard, name='dashboard'),
+    # --- ANA SAYFA DEĞİŞİKLİĞİ ---
+    # Artık ana sayfa Landing Page'e gidiyor
+    path('', landing_page, name='landing_page'),
+    
+    # Dashboard artık kendi adresinde
+    path('dashboard/', dashboard, name='dashboard'),
+
+    # Kimlik Doğrulama
     path('login/', CustomLoginView.as_view(), name='login'),
     path('register/', register, name='register'),
     path('logout/', logout_view, name='logout'),
     
-    # Skill Operations
+    # Yetenek İşlemleri
     path('add-skill/', add_skill, name='add_skill'),
     path('search/', search_skills, name='search_skills'),
     
-    # --- PROFILE PAGES ---
+    # Profil Sayfaları
     path('profile/<int:user_id>/', public_profile, name='public_profile'),
     path('edit-profile/', edit_profile, name='edit_profile'),
 
-    # Session Operations
+    # Ders/Oturum İşlemleri
     path('request-session/<int:skill_id>/', request_session, name='request_session'),
     path('complete/<int:session_id>/', complete_session, name='complete_session'),
     path('add-review/<int:session_id>/', add_review, name='add_review'),
 
-    # Approval / Rejection / Cancellation
+    # Onay / Red / İptal
     path('approve-session/<int:session_id>/', approve_session_tutor, name='approve_session_tutor'),
     path('reject-session/<int:session_id>/', reject_session_tutor, name='reject_session_tutor'),
     path('cancel-session/<int:session_id>/', cancel_session, name='cancel_session'),
     
-    # Meeting Room
+    # Toplantı Odası
     path('meeting/<int:session_id>/', meeting_room, name='meeting_room'),
     
-    # Admin Stats
+    # Admin İstatistikleri
     path('admin-stats/', admin_stats, name='admin_stats'),
 
-    # --- MESSAGING SYSTEM ---
+    # Mesajlaşma Sistemi
     path('inbox/', inbox, name='inbox'),
     path('send-message/<int:recipient_id>/', send_message, name='send_message'),
     path('chat/<int:user_id>/', chat_detail, name='chat_detail'), 
     path('new-chat/', new_chat, name='new_chat'),
 
-    # --- NOTIFICATION SYSTEM ---
+    # Bildirim Sistemi
     path('notification/read/<int:notification_id>/', mark_notification_as_read, name='mark_notification_as_read'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

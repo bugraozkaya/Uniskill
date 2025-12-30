@@ -218,6 +218,33 @@
             </div>
         </div>
     </nav>
+    
+    {% else %}
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <i class="fas fa-layer-group fa-sm"></i>
+                </div>
+                UniSkill
+            </a>
+            
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAlt">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNavAlt">
+                <ul class="navbar-nav ms-auto align-items-center gap-2">
+                    <li class="nav-item">
+                        <a class="nav-link fw-medium text-dark hover-text-primary" href="{% url 'login' %}">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold transition-hover" href="{% url 'register' %}">Join Now</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
     {% endif %}
 
     <div class="container py-4">
