@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-4 mb-4">
-        <div class="card h-100 border-0 text-center p-4">
+        <div class="card h-100 border-0 text-center p-4 shadow-sm rounded-4">
             <div class="card-body">
                 <div class="mb-4">
                     <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg position-relative" 
@@ -321,8 +321,74 @@
                     </div>
                 </div>
             </div>
+
+            <div class="col-md-12"> <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="fas fa-comment-dots me-2 text-info"></i>Student Reviews
+                        </h5>
+                        <span class="badge bg-info bg-opacity-10 text-info rounded-pill">
+                            {{ received_reviews|length }}
+                        </span>
+                    </div>
+                    
+                    <div class="card-body px-4 pb-4">
+                        {% if received_reviews %}
+                            <div class="row g-3">
+                                {% for review in received_reviews %}
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded-3 bg-light border-0 h-100">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="bg-white text-info rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm me-2" style="width: 32px; height: 32px;">
+                                                {{ review.session.student.first_name|first|upper }}
+                                            </div>
+                                            
+                                            <div class="flex-grow-1 lh-1">
+                                                <span class="d-block fw-bold text-dark small">{{ review.session.student.first_name }}</span>
+                                                <small class="text-muted" style="font-size: 10px;">{{ review.created_at|date:"d M Y" }}</small>
+                                            </div>
+
+                                            <div class="text-warning small">
+                                                <i class="fas fa-star"></i>
+                                                <span class="fw-bold text-dark">{{ review.rating }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <p class="mb-1 text-secondary small fst-italic border-start border-3 border-info ps-2 line-clamp-2">
+                                            "{{ review.comment }}"
+                                        </p>
+                                        
+                                        <div class="text-end">
+                                            <small class="text-muted bg-white px-2 py-1 rounded-pill border" style="font-size: 10px;">
+                                                <i class="fas fa-book-open me-1"></i>{{ review.session.skill.name }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5 text-muted opacity-50">
+                                <i class="fas fa-comments fa-3x mb-3"></i>
+                                <p class="mb-0 small">No reviews yet.</p>
+                                <small>Give lessons to get reviews!</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
         </div>
 
     </div>
 </div>
+
+<style>
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
 {% endblock %}

@@ -195,7 +195,7 @@ def public_profile(request, user_id):
 def dashboard(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     
-    # Get all sessions
+    # Tüm oturumları getir
     all_sessions = Session.objects.filter(
         Q(student=request.user) | Q(tutor=request.user)
     ).order_by('date')
@@ -203,32 +203,33 @@ def dashboard(request):
     my_sessions = []
     past_sessions = []
 
-    # Separate past and future sessions
+    # Geçmiş ve gelecek oturumları ayır
     for session in all_sessions:
         if session.status in ['cancelled', 'completed'] or session.is_expired:
             past_sessions.append(session)
         else:
             my_sessions.append(session)
     
-    past_sessions.reverse() # Sort from newest to oldest
+    past_sessions.reverse() # En yeniden eskiye sırala
 
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # --- UPDATED SECTION START ---
-    # Check for reviews on past sessions
+    # Geçmiş oturumlar için inceleme (review) kontrolü
     for session in past_sessions:
-        # Find the review for this session
         review = Review.objects.filter(session=session).first()
-        
         if review:
             session.is_rated = True
-            session.user_rating = review.rating  # Pass score to template
+            session.user_rating = review.rating
         else:
             session.is_rated = False
             session.user_rating = None
-    # --- UPDATED SECTION END ---
 
-    # Statistics
+    # --- YENİ EKLENEN KISIM: Bana Gelen Yorumlar ---
+    # Eğitmen olarak (tutor) yer aldığım derslere yapılan yorumları çekiyoruz.
+    received_reviews = Review.objects.filter(session__tutor=request.user).order_by('-created_at')
+    # -----------------------------------------------
+
+    # İstatistikler
     lessons_given_count = Session.objects.filter(tutor=request.user, status='completed').count()
     my_rating = Review.objects.filter(session__tutor=request.user).aggregate(Avg('rating'))['rating__avg']
 
@@ -239,6 +240,7 @@ def dashboard(request):
         'my_skills': my_skills,
         'lessons_given_count': lessons_given_count,
         'my_rating': my_rating,
+        'received_reviews': received_reviews, # <-- HTML'e gönderiyoruz
     }
     
     return render(request, 'core/dashboard.html', context)
