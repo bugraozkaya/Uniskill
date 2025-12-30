@@ -10,76 +10,59 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --primary-color: #4f46e5;
-            --text-dark: #1e293b;
-        }
-
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden; /* Scrollbar çıkmasını engelle */
+            overflow: hidden;
             font-family: 'Poppins', sans-serif;
-            background-color: #202124; /* Google Meet Dark Background */
+            background-color: #202124;
         }
 
-        /* Modern Üst Bar */
+        /* Üst Bar */
         .meeting-header {
-            height: 65px;
-            background: white;
+            height: 60px;
+            background: #18191b;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 0 1.5rem;
+            border-bottom: 1px solid #333;
             position: relative;
             z-index: 10;
         }
 
         .brand-logo {
             font-weight: 700;
-            color: var(--primary-color);
-            font-size: 1.25rem;
+            color: white;
+            font-size: 1.1rem;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .session-info {
-            text-align: center;
-        }
-        
-        .session-badge {
-            background: rgba(79, 70, 229, 0.1);
-            color: var(--primary-color);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        /* Jitsi Konteyner */
+        /* Video Alanı */
         #meet {
             width: 100%;
-            height: calc(100% - 65px); /* Header yüksekliğini çıkar */
+            height: calc(100% - 60px);
             background-color: #202124;
         }
 
-        /* Yükleniyor Animasyonu */
+        /* Yükleniyor Ekranı */
         #loading-screen {
             position: absolute;
-            top: 65px;
+            top: 60px;
             left: 0;
             width: 100%;
-            height: calc(100% - 65px);
-            background: #f8fafc;
+            height: calc(100% - 60px);
+            background: #202124;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 5;
+            z-index: 20;
+            color: white;
             transition: opacity 0.5s ease;
         }
     </style>
@@ -88,26 +71,21 @@
 
     <div class="meeting-header">
         <a href="{% url 'dashboard' %}" class="brand-logo">
-            <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                <i class="fas fa-video fa-xs"></i>
-            </div>
-            UniSkill <span class="text-muted fw-light ms-1" style="font-size: 1rem;">Live</span>
+            <i class="fas fa-video text-primary"></i> UniSkill Live
         </a>
-
-        <div class="session-info d-none d-md-block">
-            <span class="text-muted small me-2">Session ID:</span>
-            <span class="session-badge">{{ room_name }}</span>
+        
+        <div class="text-white-50 small d-none d-md-block">
+            Session: <span class="text-white fw-bold">{{ room_name }}</span>
         </div>
 
-        <a href="{% url 'dashboard' %}" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm">
-            <i class="fas fa-phone-slash me-2"></i> Leave
+        <a href="{% url 'dashboard' %}" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold">
+            <i class="fas fa-times me-1"></i> Leave
         </a>
     </div>
 
     <div id="loading-screen">
-        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-        <h5 class="fw-bold text-dark">Connecting to Secure Room...</h5>
-        <p class="text-muted small">Please allow camera and microphone permissions.</p>
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5 class="fw-light">Joining room...</h5>
     </div>
 
     <div id="meet"></div>
@@ -115,58 +93,66 @@
     <script src='https://meet.jit.si/external_api.js'></script>
     
     <script>
-        // Yükleme ekranını 2 saniye sonra kaldır (Jitsi yüklenirken)
-        setTimeout(() => {
-            const loader = document.getElementById('loading-screen');
-            loader.style.opacity = '0';
+        document.addEventListener("DOMContentLoaded", function() {
+            const roomName = '{{ room_name }}';
+            const userName = '{{ user_display_name }}';
+            
+            // ÖNEMLİ: 'meet.jit.si' yerine üyelik istemeyen açık sunucu kullanıyoruz.
+            // Bu sayede "Moderatör bekleniyor" hatası almayacaksın.
+            const domain = 'meet.ffmuc.net'; 
+            
+            const options = {
+                roomName: roomName,
+                width: '100%',
+                height: '100%',
+                parentNode: document.querySelector('#meet'),
+                userInfo: {
+                    displayName: userName
+                },
+                configOverwrite: { 
+                    startWithAudioMuted: true, // Otomatik girişte ses kapalı olsun (Tarayıcı engellememesi için)
+                    startWithVideoMuted: false,
+                    prejoinPageEnabled: false, // Bekleme ekranını KAPAT
+                    prejoinConfig: {
+                        enabled: false
+                    },
+                    enableWelcomePage: false,
+                    enableClosePage: false,
+                    disableDeepLinking: true // Uygulama indirmeyi önerme
+                },
+                interfaceConfigOverwrite: {
+                    SHOW_JITSI_WATERMARK: false,
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'desktop', 'fullscreen',
+                        'hangup', 'profile', 'chat', 'settings', 
+                        'raisehand', 'videoquality', 'tileview', 'sharedvideo'
+                    ]
+                }
+            };
+
+            const api = new JitsiMeetExternalAPI(domain, options);
+
+            // Video Bağlandığı An Loader'ı Kaldır
+            api.addEventListener('videoConferenceJoined', () => {
+                const loader = document.getElementById('loading-screen');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => { loader.style.display = 'none'; }, 500);
+                }
+            });
+
+            // Çıkış Yapılınca Dashboard'a Dön
+            api.addEventListener('videoConferenceLeft', () => {
+                window.location.href = "{% url 'dashboard' %}";
+            });
+            
+            // Emniyet sübapı: Eğer 8 saniye içinde video gelmezse loader'ı kaldır
             setTimeout(() => {
-                loader.style.display = 'none';
-            }, 500);
-        }, 2000);
-
-        // Kullanıcı Adı ve Oda Bilgisi
-        const roomName = '{{ room_name }}';
-        const userName = '{{ user_display_name }}';
-
-        // Alternative server that doesn't require login
-        const domain = 'meet.guifi.net';
-        
-        const options = {
-            roomName: roomName,
-            width: '100%',
-            height: '100%',
-            parentNode: document.querySelector('#meet'),
-            userInfo: {
-                displayName: userName
-            },
-            configOverwrite: { 
-                startWithAudioMuted: true,
-                startWithVideoMuted: false,
-                prejoinPageEnabled: false, // "Toplantıya katıl" ekranını atla
-                disableDeepLinking: true // Uygulamayı açmaya çalışma
-            },
-            interfaceConfigOverwrite: {
-                SHOW_JITSI_WATERMARK: false,
-                SHOW_WATERMARK_FOR_GUESTS: false,
-                TOOLBAR_BUTTONS: [
-                    'microphone', 'camera', 'desktop', 'fullscreen',
-                    'fodeviceselection', 'hangup', 'profile', 'chat',
-                    'settings', 'raisehand', 'videoquality', 'tileview'
-                ],
-                DEFAULT_BACKGROUND: '#202124',
-            }
-        };
-
-        const api = new JitsiMeetExternalAPI(domain, options);
-
-        // "Aramayı Sonlandır" butonuna basınca Dashboard'a dön
-        api.addEventListeners({
-            videoConferenceLeft: function () {
-                window.location.href = "{% url 'dashboard' %}";
-            },
-            readyToClose: function () {
-                window.location.href = "{% url 'dashboard' %}";
-            }
+                 const loader = document.getElementById('loading-screen');
+                 if (loader && loader.style.display !== 'none') {
+                     loader.style.display = 'none';
+                 }
+            }, 8000);
         });
     </script>
 </body>
