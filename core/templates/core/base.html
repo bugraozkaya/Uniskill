@@ -155,8 +155,47 @@
                             <i class="fas fa-comment-dots"></i>
                         </a>
                     </li>
-                    
+
                     <li class="nav-item dropdown">
+                        <a class="btn btn-light text-warning position-relative rounded-circle shadow-sm d-flex align-items-center justify-content-center hover-bg-light transition-hover" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px;">
+                            <i class="fas fa-bell"></i>
+                            {% if notification_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white" style="font-size: 0.65rem; padding: 0.35em 0.5em;">
+                                    {{ notification_count }}
+                                </span>
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-0 overflow-hidden" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                            <li class="bg-light p-3 border-bottom d-flex justify-content-between align-items-center sticky-top">
+                                <h6 class="mb-0 fw-bold text-dark">Notifications</h6>
+                                <small class="text-muted">{{ notification_count }} new</small>
+                            </li>
+                            
+                            {% if notifications %}
+                                {% for notif in notifications %}
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-start py-3 border-bottom" href="{% url 'mark_notification_as_read' notif.id %}">
+                                        <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3 text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; flex-shrink: 0;">
+                                            <i class="fas fa-info-circle"></i>
+                                        </div>
+                                        <div class="flex-grow-1" style="min-width: 0;">
+                                            <p class="mb-1 text-dark small fw-medium text-wrap lh-sm">{{ notif.message }}</p>
+                                            <small class="text-muted d-block" style="font-size: 0.7rem;">
+                                                <i class="far fa-clock me-1"></i> {{ notif.created_at|timesince }} ago
+                                            </small>
+                                        </div>
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                <li class="text-center p-5">
+                                    <i class="far fa-bell-slash fa-2x text-muted mb-3 opacity-25"></i>
+                                    <p class="text-muted small mb-0">No new notifications</p>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown ms-2">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 ps-2 pe-0" href="#" role="button" data-bs-toggle="dropdown">
                             <div class="bg-gradient bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 40px; height: 40px;">
                                 {{ user.first_name|first|upper }}

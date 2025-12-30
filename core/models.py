@@ -108,7 +108,7 @@ class Session(models.Model):
         return f"{self.student} -> {self.tutor} ({self.skill.name})"
 
 # ---------------------------------------------------------
-# 6. REVIEWS & MESSAGES
+# 6. REVIEWS & MESSAGES & NOTIFICATIONS
 # ---------------------------------------------------------
 
 class Review(models.Model):
@@ -129,3 +129,17 @@ class Message(models.Model):
 
     def __str__(self):
         return f"From {self.sender} to {self.recipient}"
+    
+class Notification(models.Model):
+    # DÜZELTME: User yerine settings.AUTH_USER_MODEL kullanıldı
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    message = models.CharField(max_length=255)
+    link = models.CharField(max_length=200, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Notification for {self.recipient}: {self.message}"

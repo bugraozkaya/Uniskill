@@ -1,10 +1,15 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
-from .models import Profile
 from django.db.models import Q
+from django.urls import reverse # <-- YENİ EKLENDİ (Link oluşturmak için)
 
-# 1. SIGNAL: REWARD WHEN USER IS APPROVED
+# Tüm modelleri buraya ekledik
+from .models import Profile, Session, Notification, Message 
+
+# ---------------------------------------------------------
+# 1. MEVCUT SİNYAL: REWARD SYSTEM (REFERRAL)
+# ---------------------------------------------------------
 @receiver(post_save, sender=Profile)
 def reward_referral(sender, instance, created, **kwargs):
     # Run only if status is 'active' AND reward hasn't been given yet
@@ -62,7 +67,9 @@ def reward_referral(sender, instance, created, **kwargs):
             print("ℹ️ This user did not enter any code during registration.")
 
 
-# 2. SIGNAL: CREATE PROFILE
+# ---------------------------------------------------------
+# 2. MEVCUT SİNYAL: CREATE PROFILE
+# ---------------------------------------------------------
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_profile(sender, instance, created, **kwargs):
     if created:
@@ -72,3 +79,50 @@ def create_profile(sender, instance, created, **kwargs):
             user=instance, 
             defaults={'referral_code': str(ref_code)}
         )
+
+# ---------------------------------------------------------
+# 3. YENİ SİNYAL: SESSION NOTIFICATIONS (Ders Talepleri)
+# ---------------------------------------------------------
+@receiver(post_save, sender=Session)
+def create_session_notification(sender, instance, created, **kwargs):
+    if created:
+        # Yeni talep oluşturulduğunda -> EĞİTMENE BİLDİRİM
+        Notification.objects.create(
+            recipient=instance.tutor,
+            message=f"New request: {instance.student.first_name} wants to learn {instance.skill.name}!",
+            link=reverse('dashboard')
+        )
+        print(f"🔔 Notification sent to Tutor: {instance.tutor.username}")
+    else:
+        # Var olan talep güncellendiğinde (Onay/Ret)
+        if instance.status == 'approved':
+            # Onaylandı -> ÖĞRENCİYE BİLDİRİM
+            Notification.objects.create(
+                recipient=instance.student,
+                message=f"Great news! Your session for {instance.skill.name} is APPROVED.",
+                link=reverse('dashboard')
+            )
+            print(f"🔔 Notification sent to Student: {instance.student.username} (Approved)")
+            
+        elif instance.status == 'cancelled':
+            # İptal edildi -> İLGİLİ KİŞİYE BİLDİRİM
+            # (Basitlik adına: İptal durumunda her iki tarafa da iptal bilgisi düşülebilir, 
+            # şimdilik öğrenciye haber verelim)
+            Notification.objects.create(
+                recipient=instance.student,
+                message=f"Session for {instance.skill.name} has been cancelled.",
+                link=reverse('dashboard')
+            )
+
+# ---------------------------------------------------------
+# 4. YENİ SİNYAL: MESSAGE NOTIFICATIONS (Yeni Mesajlar)
+# ---------------------------------------------------------
+@receiver(post_save, sender=Message)
+def create_message_notification(sender, instance, created, **kwargs):
+    if created:
+        Notification.objects.create(
+            recipient=instance.recipient,
+            message=f"New message from {instance.sender.first_name}",
+            link=reverse('chat_detail', args=[instance.sender.id])
+        )
+        print(f"🔔 Message Notification sent to: {instance.recipient.username}")

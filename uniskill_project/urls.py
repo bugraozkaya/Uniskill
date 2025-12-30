@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.shortcuts import redirect # <--- YENİ: Yönlendirme için bunu ekledik
+from django.shortcuts import redirect
 from core import views
 
 # Importing view functions directly
@@ -13,17 +13,17 @@ from core.views import (
     CustomLoginView, approve_session_tutor, reject_session_tutor,
     meeting_room, cancel_session,
     new_chat, chat_detail,
-    public_profile, edit_profile 
+    public_profile, edit_profile,
+    mark_notification_as_read  # <--- YENİ EKLENDİ
 )
 
 urlpatterns = [
     # --- GÜVENLİK GÜNCELLEMESİ ---
     
-    # 1. YENİ GİZLİ ADMİN GİRİŞİ (Senin belirlediğin)
+    # 1. YENİ GİZLİ ADMİN GİRİŞİ
     path('uniskill-yonetim-2025/', admin.site.urls),
 
     # 2. SAHTE ADMİN TUZAĞI
-    # /admin/ yazanları ana sayfaya şutluyoruz
     path('admin/', lambda request: redirect('/')),
     
     # -----------------------------
@@ -63,5 +63,8 @@ urlpatterns = [
     path('send-message/<int:recipient_id>/', send_message, name='send_message'),
     path('chat/<int:user_id>/', chat_detail, name='chat_detail'), 
     path('new-chat/', new_chat, name='new_chat'),
+
+    # --- NOTIFICATION SYSTEM ---
+    path('notification/read/<int:notification_id>/', mark_notification_as_read, name='mark_notification_as_read'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -17,6 +17,7 @@ from .models import (
     Review, 
     Message, 
     Profile,
+    Notification, # <--- YENİ EKLENDİ
     CATEGORY_CHOICES
 )
 
@@ -52,14 +53,11 @@ class CustomLoginView(LoginView):
         ip = self.get_client_ip(request)
         
         # 1. Check if IP is blocked (On initial page load)
-        # We use 'user_blocked_' prefix to avoid conflict with Admin middleware.
         blocked_expiry = cache.get(f'user_blocked_{ip}')
         
         if blocked_expiry:
             remaining = int(blocked_expiry - time.time())
             if remaining > 0:
-                # SMART TEMPLATE USAGE:
-                # Since this is a normal user, we set next_url to '/login/'
                 return render(request, 'core/login_blocked.html', {
                     'remaining': remaining,
                     'next_url': '/login/' 
@@ -81,29 +79,23 @@ class CustomLoginView(LoginView):
         if count >= 3:
             expiry_time = time.time() + 30
             cache.set(f'user_blocked_{ip}', expiry_time, 30)
-            
-            # Clear the fail counter so it starts fresh after the block expires
             cache.delete(fail_key)
             
-            # Send to blocked page
             return render(self.request, 'core/login_blocked.html', {
                 'remaining': 30,
                 'next_url': '/login/'
             })
 
-        # If attempts remain, show warning message
         if remaining_attempts > 0:
             messages.error(self.request, f"⚠️ Incorrect password! (Attempt {count}) - Remaining attempts: {remaining_attempts}")
 
         return super().form_invalid(form)
 
     def form_valid(self, form):
-        # Login successful, clear all counters and blocks
         ip = self.get_client_ip(self.request)
         cache.delete(f'user_fail_{ip}')
         cache.delete(f'user_blocked_{ip}')
         
-        # Check for unapproved users
         user = form.get_user()
         if hasattr(user, 'profile') and user.profile.status != 'active':
              messages.error(self.request, "Your account has not been approved by the Admin yet.")
@@ -116,16 +108,10 @@ def register(request):
         form = CustomUserCreationForm(request.POST) 
         if form.is_valid():
             try:
-                # 1. Save user ONCE
                 user = form.save()
-                
-                # 2. Get profile (already created by signals)
                 profile, created = Profile.objects.get_or_create(user=user)
-                
-                # 3. Save extra details
                 profile.department = form.cleaned_data.get('department')
                 
-                # 4. Referral Code Logic
                 ref_code = form.cleaned_data.get('used_referral')
                 if ref_code:
                     profile.used_referral = ref_code.strip()
@@ -164,7 +150,6 @@ def edit_profile(request):
 
 def public_profile(request, user_id):
     tutor = get_object_or_404(User, id=user_id)
-    
     try:
         profile = tutor.profile
     except:
@@ -195,7 +180,6 @@ def public_profile(request, user_id):
 def dashboard(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     
-    # Tüm oturumları getir
     all_sessions = Session.objects.filter(
         Q(student=request.user) | Q(tutor=request.user)
     ).order_by('date')
@@ -203,18 +187,16 @@ def dashboard(request):
     my_sessions = []
     past_sessions = []
 
-    # Geçmiş ve gelecek oturumları ayır
     for session in all_sessions:
         if session.status in ['cancelled', 'completed'] or session.is_expired:
             past_sessions.append(session)
         else:
             my_sessions.append(session)
     
-    past_sessions.reverse() # En yeniden eskiye sırala
+    past_sessions.reverse() 
 
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # Geçmiş oturumlar için inceleme (review) kontrolü
     for session in past_sessions:
         review = Review.objects.filter(session=session).first()
         if review:
@@ -224,12 +206,8 @@ def dashboard(request):
             session.is_rated = False
             session.user_rating = None
 
-    # --- YENİ EKLENEN KISIM: Bana Gelen Yorumlar ---
-    # Eğitmen olarak (tutor) yer aldığım derslere yapılan yorumları çekiyoruz.
     received_reviews = Review.objects.filter(session__tutor=request.user).order_by('-created_at')
-    # -----------------------------------------------
 
-    # İstatistikler
     lessons_given_count = Session.objects.filter(tutor=request.user, status='completed').count()
     my_rating = Review.objects.filter(session__tutor=request.user).aggregate(Avg('rating'))['rating__avg']
 
@@ -240,7 +218,7 @@ def dashboard(request):
         'my_skills': my_skills,
         'lessons_given_count': lessons_given_count,
         'my_rating': my_rating,
-        'received_reviews': received_reviews, # <-- HTML'e gönderiyoruz
+        'received_reviews': received_reviews, 
     }
     
     return render(request, 'core/dashboard.html', context)
@@ -261,7 +239,6 @@ def add_skill(request):
     return render(request, 'core/add_skill.html', {'form': form})
 
 def search_skills(request):
-    # Calculate average rating
     skills = UserSkill.objects.filter(is_approved=True).annotate(
         average_rating=Avg('user__given_sessions__review__rating')
     )
@@ -269,7 +246,7 @@ def search_skills(request):
     query = request.GET.get('q')
     category_code = request.GET.get('category')
     min_rating = request.GET.get('rating')
-    sort_by = request.GET.get('sort') # <--- NEW: Get sorting parameter
+    sort_by = request.GET.get('sort') 
 
     if query:
         skills = skills.filter(
@@ -285,12 +262,9 @@ def search_skills(request):
     if min_rating:
         skills = skills.filter(average_rating__gte=int(min_rating))
 
-    # --- SORTING LOGIC (UPDATED) ---
     if sort_by == 'rating':
-        # Highest to lowest rating
         skills = skills.order_by('-average_rating', '-id')
     else:
-        # Relevance (Default): Newest to oldest (Highest ID is newest)
         skills = skills.order_by('-id')
 
     context = {
@@ -298,7 +272,7 @@ def search_skills(request):
         'categories': CATEGORY_CHOICES,
         'selected_category': category_code,
         'selected_rating': min_rating,
-        'selected_sort': sort_by, # <--- Pass to template to keep selected
+        'selected_sort': sort_by,
         'query': query
     }
     return render(request, 'core/search_skills.html', context)
@@ -334,7 +308,6 @@ def complete_session(request, session_id):
         session.status = 'completed'
         session.save()
         
-        # Balance Transfer
         student_profile = session.student.profile
         student_profile.balance -= session.duration
         student_profile.save()
@@ -379,23 +352,20 @@ def cancel_session(request, session_id):
 def add_review(request, session_id):
     session = get_object_or_404(Session, id=session_id)
     
-    # 1. Check: Is it the student?
     if request.user != session.student:
         messages.error(request, "Only the student who took the session can leave a review.")
         return redirect('dashboard')
         
-    # 2. Check: Is session completed?
     if session.status != 'completed':
         messages.error(request, "You cannot review a session that is not completed.")
         return redirect('dashboard')
 
-    # 3. CHECK (NEW): Has it already been reviewed?
     if Review.objects.filter(session=session).exists():
         messages.warning(request, "You have already reviewed this session.")
         return redirect('dashboard')
 
     if request.method == 'POST':
-        form = DegerlendirmeFormu(request.POST) # Kept form name same
+        form = DegerlendirmeFormu(request.POST) 
         if form.is_valid():
             review = form.save(commit=False)
             review.session = session
@@ -538,3 +508,13 @@ def admin_stats(request):
     }
 
     return render(request, 'core/admin_stats.html', context)
+
+# --- YENİ EKLENEN: BİLDİRİM OKUNDU YAPMA ---
+@login_required
+def mark_notification_as_read(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
+    notification.is_read = True
+    notification.save()
+    
+    # Link varsa git, yoksa dashboard'a
+    return redirect(notification.link if notification.link else 'dashboard')
