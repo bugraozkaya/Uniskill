@@ -7,11 +7,13 @@
         <div class="card shadow-lg border-0 rounded-4 overflow-hidden bg-white">
             
             <div class="card-header bg-white border-0 pt-4 px-4 pb-0 text-center">
-                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 70px; height: 70px;">
-                    <i class="fas fa-user-edit fa-2x"></i>
+                <div class="position-relative d-inline-block mb-3">
+                    <img src="{{ user.profile.avatar.url }}" class="rounded-circle border border-4 border-light shadow-sm" style="width: 100px; height: 100px; object-fit: cover;">
+                    <div class="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle p-2" style="width: 20px; height: 20px;"></div>
                 </div>
+                
                 <h3 class="fw-bold text-dark">Update Profile</h3>
-                <p class="text-muted">Keep your personal details up to date.</p>
+                <p class="text-muted">Change your avatar and personal details.</p>
             </div>
 
             <div class="card-body p-4 p-md-5">
@@ -32,46 +34,41 @@
                                 </span>
                                 {{ field }}
                             </div>
-                            {% if field.help_text %}
-                                <div class="form-text text-muted small ms-1">{{ field.help_text }}</div>
-                            {% endif %}
-                            {% for error in field.errors %}
+                            {% if field.errors %}
                                 <div class="text-danger small mt-1 ms-1 fw-bold">
-                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                    {{ field.errors.0 }}
                                 </div>
-                            {% endfor %}
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
 
                     <div class="mb-4">
                         <h6 class="fw-bold text-uppercase text-muted small letter-spacing-1 mb-3 border-bottom pb-2 mt-4">
-                            <i class="fas fa-graduation-cap me-2 text-primary"></i>Academic Details
+                            <i class="fas fa-camera me-2 text-primary"></i>Profile Details
                         </h6>
 
-                        {% for field in p_form %}
                         <div class="mb-3">
-                            <label class="form-label fw-bold small text-dark">{{ field.label }}</label>
+                            <label class="form-label fw-bold small text-dark">Department</label>
                             <div class="input-group shadow-sm rounded-3">
                                 <span class="input-group-text bg-light border-0 ps-3 text-muted">
                                     <i class="fas fa-university small"></i>
                                 </span>
-                                {{ field }}
+                                {{ p_form.department }}
                             </div>
-                            {% if field.help_text %}
-                                <div class="form-text text-muted small ms-1">{{ field.help_text }}</div>
-                            {% endif %}
-                            {% for error in field.errors %}
-                                <div class="text-danger small mt-1 ms-1 fw-bold">
-                                    <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
-                                </div>
-                            {% endfor %}
                         </div>
-                        {% endfor %}
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-dark">Profile Picture</label>
+                            <div class="shadow-sm rounded-3">
+                                {{ p_form.avatar }}
+                            </div>
+                            <div class="form-text text-muted small ms-1">Supported formats: JPG, PNG. (Max 5MB)</div>
+                        </div>
                     </div>
 
                     <div class="d-grid gap-2 mt-5">
-                        <button type="submit" class="btn btn-success btn-lg rounded-3 fw-bold shadow-sm py-2 transition-hover">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold shadow-sm py-2 transition-hover">
                             Save Changes <i class="fas fa-check-circle ms-2"></i>
                         </button>
                         <a href="{% url 'dashboard' %}" class="btn btn-light text-muted rounded-3 py-2 fw-medium">Cancel</a>
@@ -83,25 +80,15 @@
 </div>
 
 <script>
-    // Django form elemanlarına otomatik modern stil ekle
     document.addEventListener("DOMContentLoaded", function() {
         const inputs = document.querySelectorAll('input, select, textarea');
         
         inputs.forEach(input => {
-            // Checkbox değilse standart stil uygula
             if (input.type !== 'checkbox' && input.type !== 'file') {
                 input.classList.add('form-control', 'bg-light', 'border-0', 'py-2', 'ps-3');
             }
-            
-            // Select kutusu ise
-            if (input.tagName === 'SELECT') {
-                input.classList.add('form-select');
-                input.style.cursor = 'pointer';
-            }
-
-            // Dosya yükleme alanı ise (varsa)
             if (input.type === 'file') {
-                input.classList.add('form-control', 'bg-light');
+                input.classList.add('form-control'); // Dosya yükleme butonu için
             }
         });
     });

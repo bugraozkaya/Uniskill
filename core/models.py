@@ -25,6 +25,10 @@ CATEGORY_CHOICES = [
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     
+    # --- YENİ EKLENEN KISIM: Profil Fotoğrafı ---
+    avatar = models.ImageField(default='default.png', upload_to='profile_pics/', verbose_name="Profile Picture")
+    # --------------------------------------------
+
     balance = models.IntegerField(default=3, help_text="Balance in hours")
     department = models.CharField(max_length=100, blank=True, null=True)
     
@@ -131,7 +135,6 @@ class Message(models.Model):
         return f"From {self.sender} to {self.recipient}"
     
 class Notification(models.Model):
-    # DÜZELTME: User yerine settings.AUTH_USER_MODEL kullanıldı
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
     message = models.CharField(max_length=255)
     link = models.CharField(max_length=200, blank=True, null=True)

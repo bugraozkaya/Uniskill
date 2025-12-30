@@ -99,12 +99,15 @@ class UserUpdateForm(forms.ModelForm):
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
-        fields = ['department']
+        # --- BURASI DEĞİŞTİ: Avatar alanı eklendi ---
+        fields = ['department', 'avatar']
         labels = {
-            'department': 'Department'
+            'department': 'Department',
+            'avatar': 'Profile Picture'
         }
         widgets = {
             'department': forms.TextInput(attrs={'class': 'form-control'}),
+            'avatar': forms.FileInput(attrs={'class': 'form-control'}), # Dosya yükleme butonu
         }
 
 # 6. REVIEW FORM
