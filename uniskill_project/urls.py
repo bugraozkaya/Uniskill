@@ -7,13 +7,14 @@ from core import views
 
 # View fonksiyonlarını import ediyoruz
 from core.views import (
-    landing_page, leaderboard, # <--- LEADERBOARD EKLENDİ
+    landing_page, leaderboard,
     dashboard, register, logout_view, add_skill, 
     search_skills, request_session, complete_session, 
-    add_review, admin_stats, inbox, send_message,
+    add_review, admin_stats, 
+    # Eski mesaj fonksiyonlarını kaldırdık, yerine messaging geldi:
+    messaging, 
     CustomLoginView, approve_session_tutor, reject_session_tutor,
     meeting_room, cancel_session,
-    new_chat, chat_detail,
     public_profile, edit_profile,
     mark_notification_as_read
 )
@@ -27,9 +28,8 @@ urlpatterns = [
     path('', landing_page, name='landing_page'),
     path('dashboard/', dashboard, name='dashboard'),
 
-    # --- YENİ EKLENEN: LEADERBOARD ---
+    # Leaderboard
     path('leaderboard/', leaderboard, name='leaderboard'),
-    # ---------------------------------
 
     # Kimlik Doğrulama
     path('login/', CustomLoginView.as_view(), name='login'),
@@ -60,11 +60,12 @@ urlpatterns = [
     # Admin İstatistikleri
     path('admin-stats/', admin_stats, name='admin_stats'),
 
-    # Mesajlaşma Sistemi
-    path('inbox/', inbox, name='inbox'),
-    path('send-message/<int:recipient_id>/', send_message, name='send_message'),
-    path('chat/<int:user_id>/', chat_detail, name='chat_detail'), 
-    path('new-chat/', new_chat, name='new_chat'),
+    # --- YENİ MESAJLAŞMA SİSTEMİ (WHATSAPP STYLE) ---
+    # 1. Genel Ekran (Kimse seçili değil)
+    path('messages/', messaging, name='messaging_home'),
+    # 2. Sohbet Ekranı (Kişi seçili)
+    path('messages/<int:user_id>/', messaging, name='messaging'),
+    # -----------------------------------------------
 
     # Bildirim Sistemi
     path('notification/read/<int:notification_id>/', mark_notification_as_read, name='mark_notification_as_read'),

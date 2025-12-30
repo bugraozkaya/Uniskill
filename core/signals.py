@@ -2,7 +2,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
 from django.db.models import Q
-from django.urls import reverse # <-- YENİ EKLENDİ (Link oluşturmak için)
+from django.urls import reverse
 
 # Tüm modelleri buraya ekledik
 from .models import Profile, Session, Notification, Message 
@@ -106,8 +106,6 @@ def create_session_notification(sender, instance, created, **kwargs):
             
         elif instance.status == 'cancelled':
             # İptal edildi -> İLGİLİ KİŞİYE BİLDİRİM
-            # (Basitlik adına: İptal durumunda her iki tarafa da iptal bilgisi düşülebilir, 
-            # şimdilik öğrenciye haber verelim)
             Notification.objects.create(
                 recipient=instance.student,
                 message=f"Session for {instance.skill.name} has been cancelled.",
@@ -120,9 +118,12 @@ def create_session_notification(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Message)
 def create_message_notification(sender, instance, created, **kwargs):
     if created:
+        # --- BURASI DÜZELTİLDİ: 'chat_detail' yerine 'messaging' ---
+        link = reverse('messaging', args=[instance.sender.id])
+        
         Notification.objects.create(
             recipient=instance.recipient,
             message=f"New message from {instance.sender.first_name}",
-            link=reverse('chat_detail', args=[instance.sender.id])
+            link=link
         )
         print(f"🔔 Message Notification sent to: {instance.recipient.username}")

@@ -406,11 +406,15 @@ def meeting_room(request, session_id):
 
 
 # ---------------------------------------------------------
-# 3. MESSAGING AND ADMIN
+# 3. UNIFIED MESSAGING (WHATSAPP STYLE) & ADMIN
 # ---------------------------------------------------------
 
 @login_required
-def inbox(request):
+def messaging(request, user_id=None):
+    """
+    Hem kişi listesini (sol) hem de aktif sohbeti (sağ) yöneten tek fonksiyon.
+    """
+    # 1. SOL TARAFTAKİ KİŞİ LİSTESİ
     messages_qs = Message.objects.filter(
         Q(sender=request.user) | Q(recipient=request.user)
     ).order_by('-created_at')
@@ -423,60 +427,56 @@ def inbox(request):
         if other_user not in seen_users:
             conversations.append({
                 'user': other_user,
-                'last_message': msg
+                'last_message': msg,
             })
             seen_users.add(other_user)
 
-    return render(request, 'core/inbox.html', {'conversations': conversations})
-
-@login_required
-def chat_detail(request, user_id):
-    other_user = get_object_or_404(User, id=user_id)
+    # 2. SAĞ TARAFTAKİ AKTİF SOHBET
+    active_user = None
+    chat_messages = []
     
-    messages_qs = Message.objects.filter(
-        (Q(sender=request.user) & Q(recipient=other_user)) |
-        (Q(sender=other_user) & Q(recipient=request.user))
-    ).order_by('created_at')
+    if user_id:
+        active_user = get_object_or_404(User, id=user_id)
+        
+        # Mesajları getir
+        chat_messages = Message.objects.filter(
+            (Q(sender=request.user) & Q(recipient=active_user)) |
+            (Q(sender=active_user) & Q(recipient=request.user))
+        ).order_by('created_at')
 
-    unread = messages_qs.filter(recipient=request.user, is_read=False)
-    unread.update(is_read=True)
+        # Okundu yap
+        unread = chat_messages.filter(recipient=request.user, is_read=False)
+        unread.update(is_read=True)
 
-    if request.method == 'POST':
-        form = MesajFormu(request.POST)
-        if form.is_valid():
-            msg = form.save(commit=False)
-            msg.sender = request.user
-            msg.recipient = other_user
-            msg.save()
-            return redirect('chat_detail', user_id=user_id)
-    else:
-        form = MesajFormu()
+        # --- MESAJ GÖNDERME KISMI (DÜZELTİLEN YER) ---
+        if request.method == 'POST':
+            content = request.POST.get('content')
+            if content:
+                Message.objects.create(
+                    sender=request.user,
+                    recipient=active_user,
+                    body=content  # Burada 'body' kullandık
+                )
+                # BURASI ÖNEMLİ: 'chat_detail' DEĞİL 'messaging' OLMALI
+                return redirect('messaging', user_id=user_id)
+        # ----------------------------------------------
+
+    # 3. YENİ SOHBET BAŞLATMA
+    if request.method == 'POST' and not user_id:
+        username = request.POST.get('username')
+        if username:
+            try:
+                recipient = User.objects.get(username=username)
+                return redirect('messaging', user_id=recipient.id)
+            except User.DoesNotExist:
+                messages.error(request, "User not found.")
 
     context = {
-        'other_user': other_user,
-        'messages': messages_qs,
-        'form': form
+        'conversations': conversations,
+        'active_user': active_user,
+        'chat_messages': chat_messages,
     }
-    return render(request, 'core/chat.html', context)
-
-@login_required
-def send_message(request, recipient_id):
-    return redirect('chat_detail', user_id=recipient_id)
-
-@login_required
-def new_chat(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        try:
-            recipient = User.objects.get(username=username)
-            if recipient == request.user:
-                messages.warning(request, "You cannot send a message to yourself.")
-                return redirect('inbox')
-            return redirect('chat_detail', user_id=recipient.id)
-        except User.DoesNotExist:
-            messages.error(request, "User not found.")
-            return redirect('inbox')
-    return redirect('inbox')
+    return render(request, 'core/messaging.html', context)
 
 @login_required
 def admin_stats(request):

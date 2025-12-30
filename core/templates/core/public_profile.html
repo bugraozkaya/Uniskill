@@ -41,7 +41,7 @@
 
                     {% if request.user != tutor %}
                     <div class="d-grid gap-2">
-                        <a href="{% url 'send_message' tutor.id %}" class="btn btn-primary rounded-3 py-2 fw-bold shadow-sm transition-hover">
+                        <a href="{% url 'messaging' tutor.id %}" class="btn btn-primary rounded-3 py-2 fw-bold shadow-sm transition-hover">
                             <i class="far fa-envelope me-2"></i>Send Message
                         </a>
                     </div>
