@@ -8,6 +8,16 @@ from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
 from django.core.cache import cache
 from django.utils.dateparse import parse_datetime
+from django.conf import settings # Ayarlardan mail bilgilerini almak için
+
+# --- YENİ IMPORTLAR (MAİL VE AKTİVASYON İÇİN) ---
+from django.core.mail import send_mail, EmailMessage
+from django.template.loader import render_to_string
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import default_token_generator
+# ------------------------------------------------
 
 # --- MODELS ---
 from .models import (
@@ -103,30 +113,74 @@ class CustomLoginView(LoginView):
 
         return super().form_valid(form) 
 
+# --- GÜNCELLENEN REGISTER FONKSİYONU (AKTİVASYON MAİLİ İLE) ---
 def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST) 
         if form.is_valid():
+            user = form.save(commit=False)
+            user.is_active = False # HESABI PASİF OLARAK KAYDET
+            user.save()
+
+            # Profil oluşturma
+            profile, created = Profile.objects.get_or_create(user=user)
+            profile.department = form.cleaned_data.get('department')
+            ref_code = form.cleaned_data.get('used_referral')
+            if ref_code:
+                profile.used_referral = ref_code.strip()
+            profile.save()
+
+            # --- E-POSTA DOĞRULAMA KISMI ---
+            current_site = get_current_site(request)
+            mail_subject = 'Activate your UniSkill account'
+            message = render_to_string('core/acc_active_email.html', {
+                'user': user,
+                'domain': current_site.domain,
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': default_token_generator.make_token(user),
+            })
+            
+            to_email = form.cleaned_data.get('email')
+            email = EmailMessage(
+                mail_subject, message, to=[to_email]
+            )
             try:
-                user = form.save()
-                profile, created = Profile.objects.get_or_create(user=user)
-                profile.department = form.cleaned_data.get('department')
-                
-                ref_code = form.cleaned_data.get('used_referral')
-                if ref_code:
-                    profile.used_referral = ref_code.strip()
-                
-                profile.save() 
-                
-                messages.success(request, 'Registration successful! Your account will be active after admin approval.')
-                return redirect('login') 
-                
-            except Exception as e:
-                messages.error(request, f"An error occurred during registration: {e}")
+                email.send()
+                messages.success(request, 'Please confirm your email address to complete the registration.')
+            except:
+                messages.error(request, 'Error sending confirmation email. Please try again later.')
+                user.delete() # Mail gitmezse kullanıcıyı sil
+                return redirect('register')
+            
+            return redirect('login') 
     else:
         form = CustomUserCreationForm()
     
     return render(request, 'core/register.html', {'form': form})
+
+# --- YENİ EKLENEN: AKTİVASYON FONKSİYONU ---
+def activate(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except(TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+    
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True # HESABI AKTİF ET
+        user.save()
+        
+        # Profil status'ünü de active yapalım (Admin onayı beklemeden giriş yapabilsin diye)
+        # Eğer admin onayı zorunlu kalsın istiyorsan burayı silebilirsin.
+        # user.profile.status = 'active'
+        # user.profile.save()
+
+        messages.success(request, 'Thank you for your email confirmation. Now you can login your account.')
+        return redirect('login')
+    else:
+        messages.error(request, 'Activation link is invalid!')
+        return redirect('register')
+# ---------------------------------------------
 
 def logout_view(request):
     logout(request)
@@ -278,6 +332,7 @@ def search_skills(request):
     }
     return render(request, 'core/search_skills.html', context)
 
+# --- GÜNCELLENEN REQUEST_SESSION (BİLDİRİM MAİLİ İLE) ---
 @login_required
 def request_session(request, skill_id):
     skill = get_object_or_404(UserSkill, id=skill_id)
@@ -296,6 +351,24 @@ def request_session(request, skill_id):
             status='pending'
         )
         new_session.save()
+
+        # --- MAİL GÖNDERME KISMI (DERS TALEBİ) ---
+        subject = f"UniSkill: New Session Request for {skill.skill.name}!"
+        message = f"Hello {skill.user.first_name},\n\n{request.user.get_full_name()} wants to learn '{skill.skill.name}' from you.\n\nDate: {date_str}\nDuration: {duration} hours\n\nPlease log in to Approve or Reject this request: https://bugraozkaya.pythonanywhere.com/dashboard/"
+        
+        if skill.user.email:
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.EMAIL_HOST_USER, 
+                    [skill.user.email],       
+                    fail_silently=True,
+                )
+            except:
+                pass 
+        # -----------------------------------------
+
         messages.success(request, "Session request received! Waiting for approval.")
         return redirect('dashboard')
     
@@ -462,6 +535,18 @@ def messaging(request, user_id=None):
                     body=content if content else "", # Metin yoksa boş string
                     image=image # Resim verisi (veya None)
                 )
+
+                # --- MAİL GÖNDERME KISMI (MESAJ) ---
+                if active_user.email: # Eğer kullanıcının maili varsa
+                    subject = f"UniSkill: New Message from {request.user.first_name}"
+                    email_body = f"Hey {active_user.first_name},\n\n{request.user.get_full_name()} sent you a message:\n\n'{content if content else 'Sent a photo 📷'}'\n\nLog in to reply: https://bugraozkaya.pythonanywhere.com/messaging/{request.user.id}/"
+                    
+                    try:
+                        send_mail(subject, email_body, settings.EMAIL_HOST_USER, [active_user.email], fail_silently=True)
+                    except:
+                        pass
+                # ----------------------------------
+
                 return redirect('messaging', user_id=user_id)
         # ---------------------------------------------------
 

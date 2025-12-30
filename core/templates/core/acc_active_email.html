@@ -1,0 +1,10 @@
+Hi {{ user.first_name }},
+
+Please click on the link below to confirm your registration on UniSkill:
+
+http://{{ domain }}{% url 'activate' uidb64=uid token=token %}
+
+If you think, it's not you, then just ignore this email.
+
+Best,
+UniSkill Team

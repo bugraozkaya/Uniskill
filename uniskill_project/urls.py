@@ -16,7 +16,8 @@ from core.views import (
     CustomLoginView, approve_session_tutor, reject_session_tutor,
     meeting_room, cancel_session,
     public_profile, edit_profile,
-    mark_notification_as_read
+    mark_notification_as_read,
+    activate # <-- YENİ EKLENEN: Aktivasyon fonksiyonunu import ettik
 )
 
 urlpatterns = [
@@ -36,6 +37,11 @@ urlpatterns = [
     path('register/', register, name='register'),
     path('logout/', logout_view, name='logout'),
     
+    # --- YENİ EKLENEN: E-POSTA AKTİVASYON YOLU ---
+    # Bu link kullanıcının mailine gidecek
+    path('activate/<uidb64>/<token>/', activate, name='activate'),
+    # ---------------------------------------------
+
     # Yetenek İşlemleri
     path('add-skill/', add_skill, name='add_skill'),
     path('search/', search_skills, name='search_skills'),
@@ -67,8 +73,7 @@ urlpatterns = [
     # Bildirim Sistemi
     path('notification/read/<int:notification_id>/', mark_notification_as_read, name='mark_notification_as_read'),
 
-    # --- GEÇİCİ 404 TEST LİNKİ (DÜZELTİLDİ) ---
-    # Dosya yolu 'core/404.html' olarak güncellendi
+    # --- GEÇİCİ 404 TEST LİNKİ ---
     path('test-404/', lambda request: render(request, 'core/404.html')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
