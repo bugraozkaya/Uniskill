@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from django.shortcuts import redirect
+# 'render' fonksiyonu gerekli
+from django.shortcuts import redirect, render 
 from core import views
 
 # View fonksiyonlarını import ediyoruz
@@ -11,7 +12,6 @@ from core.views import (
     dashboard, register, logout_view, add_skill, 
     search_skills, request_session, complete_session, 
     add_review, admin_stats, 
-    # Eski mesaj fonksiyonlarını kaldırdık, yerine messaging geldi:
     messaging, 
     CustomLoginView, approve_session_tutor, reject_session_tutor,
     meeting_room, cancel_session,
@@ -60,14 +60,15 @@ urlpatterns = [
     # Admin İstatistikleri
     path('admin-stats/', admin_stats, name='admin_stats'),
 
-    # --- YENİ MESAJLAŞMA SİSTEMİ (WHATSAPP STYLE) ---
-    # 1. Genel Ekran (Kimse seçili değil)
+    # --- MESAJLAŞMA SİSTEMİ ---
     path('messages/', messaging, name='messaging_home'),
-    # 2. Sohbet Ekranı (Kişi seçili)
     path('messages/<int:user_id>/', messaging, name='messaging'),
-    # -----------------------------------------------
 
     # Bildirim Sistemi
     path('notification/read/<int:notification_id>/', mark_notification_as_read, name='mark_notification_as_read'),
+
+    # --- GEÇİCİ 404 TEST LİNKİ (DÜZELTİLDİ) ---
+    # Dosya yolu 'core/404.html' olarak güncellendi
+    path('test-404/', lambda request: render(request, 'core/404.html')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
