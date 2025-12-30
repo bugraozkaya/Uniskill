@@ -44,7 +44,12 @@
                             </div>
                             <p class="mb-0 text-muted small text-truncate">
                                 {% if item.last_message.sender == user %}<span class="text-primary fw-bold">You:</span>{% endif %} 
-                                {{ item.last_message.body }}
+                                
+                                {% if item.last_message.image %}
+                                    <i class="fas fa-camera text-muted ms-1"></i> Photo
+                                {% else %}
+                                    {{ item.last_message.body }}
+                                {% endif %}
                             </p>
                         </div>
                     </a>
@@ -80,12 +85,22 @@
                                     <img src="{{ active_user.profile.avatar.url }}" class="rounded-circle border me-2 align-self-end mb-1" style="width: 28px; height: 28px; object-fit: cover;">
                                 {% endif %}
                                 
-                                <div class="p-3 shadow-sm {% if msg.sender == user %}bg-primary text-white rounded-3 rounded-bottom-0{% else %}bg-white text-dark rounded-3 rounded-bottom-0{% endif %}" 
+                                <div class="p-1 shadow-sm {% if msg.sender == user %}bg-primary text-white rounded-3 rounded-bottom-0{% else %}bg-white text-dark rounded-3 rounded-bottom-0{% endif %}" 
                                      style="max-width: 75%; border-radius: 18px !important; {% if msg.sender == user %}border-bottom-right-radius: 2px !important;{% else %}border-bottom-left-radius: 2px !important;{% endif %}">
                                     
-                                    <p class="mb-1 small" style="white-space: pre-wrap;">{{ msg.body }}</p>
+                                    {% if msg.image %}
+                                        <div class="mb-1">
+                                            <a href="{{ msg.image.url }}" target="_blank">
+                                                <img src="{{ msg.image.url }}" class="img-fluid rounded-3" style="max-height: 300px; object-fit: cover;">
+                                            </a>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if msg.body %}
+                                        <p class="mb-1 small px-2 pt-1" style="white-space: pre-wrap;">{{ msg.body }}</p>
+                                    {% endif %}
                                     
-                                    <div class="text-end lh-1">
+                                    <div class="text-end lh-1 px-2 pb-1">
                                         <small class="opacity-75" style="font-size: 0.65rem;">
                                             {{ msg.created_at|date:"H:i" }}
                                             {% if msg.sender == user %}
@@ -99,11 +114,19 @@
                     </div>
 
                     <div class="p-3 bg-white border-top">
-                        <form method="POST" class="d-flex gap-2">
+                        <form method="POST" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
                             {% csrf_token %}
-                            <input type="text" name="content" class="form-control rounded-pill bg-light border-0 py-2 px-4 shadow-inner" placeholder="Type a message..." required autocomplete="off" autofocus>
+                            
+                            <label for="file-upload" class="btn btn-light rounded-circle text-muted shadow-sm transition-hover" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Attach Image">
+                                <i class="fas fa-paperclip"></i>
+                            </label>
+                            <input id="file-upload" type="file" name="image" style="display: none;" accept="image/*" onchange="showFileName(this)">
+
+                            <input type="text" name="content" class="form-control rounded-pill bg-light border-0 py-2 px-4 shadow-inner" placeholder="Type a message..." autocomplete="off">
+                            
                             <button type="submit" class="btn btn-primary rounded-circle shadow-sm transition-hover" style="width: 42px; height: 42px;"><i class="fas fa-paper-plane"></i></button>
                         </form>
+                        <div id="file-name-display" class="small text-primary ms-5 mt-1 fw-bold"></div>
                     </div>
 
                 {% else %}
@@ -134,5 +157,15 @@
             chatDiv.scrollTop = chatDiv.scrollHeight;
         }
     });
+
+    // Script to show selected file name
+    function showFileName(input) {
+        var display = document.getElementById('file-name-display');
+        if (input.files && input.files[0]) {
+            display.textContent = "📎 " + input.files[0].name;
+        } else {
+            display.textContent = "";
+        }
+    }
 </script>
 {% endblock %}

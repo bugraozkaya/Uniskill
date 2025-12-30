@@ -413,6 +413,7 @@ def meeting_room(request, session_id):
 def messaging(request, user_id=None):
     """
     Hem kişi listesini (sol) hem de aktif sohbeti (sağ) yöneten tek fonksiyon.
+    Resim gönderme özelliğini de destekler.
     """
     # 1. SOL TARAFTAKİ KİŞİ LİSTESİ
     messages_qs = Message.objects.filter(
@@ -448,18 +449,21 @@ def messaging(request, user_id=None):
         unread = chat_messages.filter(recipient=request.user, is_read=False)
         unread.update(is_read=True)
 
-        # --- MESAJ GÖNDERME KISMI (DÜZELTİLEN YER) ---
+        # --- YENİ EKLENEN: RESİM DESTEKLİ MESAJ GÖNDERME ---
         if request.method == 'POST':
             content = request.POST.get('content')
-            if content:
+            image = request.FILES.get('image') # Formdan resmi al
+            
+            # İçerik veya Resim varsa kaydet
+            if content or image:
                 Message.objects.create(
                     sender=request.user,
                     recipient=active_user,
-                    body=content  # Burada 'body' kullandık
+                    body=content if content else "", # Metin yoksa boş string
+                    image=image # Resim verisi (veya None)
                 )
-                # BURASI ÖNEMLİ: 'chat_detail' DEĞİL 'messaging' OLMALI
                 return redirect('messaging', user_id=user_id)
-        # ----------------------------------------------
+        # ---------------------------------------------------
 
     # 3. YENİ SOHBET BAŞLATMA
     if request.method == 'POST' and not user_id:
@@ -477,6 +481,7 @@ def messaging(request, user_id=None):
         'chat_messages': chat_messages,
     }
     return render(request, 'core/messaging.html', context)
+
 
 @login_required
 def admin_stats(request):
@@ -527,7 +532,7 @@ def landing_page(request):
         return redirect('dashboard')
     return render(request, 'core/landing.html')
 
-# --- YENİ EKLENEN: LEADERBOARD ---
+# --- LEADERBOARD ---
 def leaderboard(request):
     # 1. En Çok Ders Verenler
     most_active = User.objects.annotate(

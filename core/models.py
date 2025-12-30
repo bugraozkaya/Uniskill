@@ -25,10 +25,9 @@ CATEGORY_CHOICES = [
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     
-    # --- YENİ EKLENEN KISIM: Profil Fotoğrafı ---
+    # --- Profil Fotoğrafı ---
     avatar = models.ImageField(default='default.png', upload_to='profile_pics/', verbose_name="Profile Picture")
-    # --------------------------------------------
-
+    
     balance = models.IntegerField(default=3, help_text="Balance in hours")
     department = models.CharField(max_length=100, blank=True, null=True)
     
@@ -127,7 +126,10 @@ class Review(models.Model):
 class Message(models.Model):
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
-    body = models.TextField()
+    body = models.TextField(blank=True, null=True) # Metin boş olabilir
+    # --- YENİ EKLENEN: Resim Alanı ---
+    image = models.ImageField(upload_to='message_images/', blank=True, null=True)
+    # ---------------------------------
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
