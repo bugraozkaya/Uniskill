@@ -7,8 +7,7 @@ from core import views
 
 # View fonksiyonlarını import ediyoruz
 from core.views import (
-    # --- YENİ EKLENDİ: landing_page ---
-    landing_page, 
+    landing_page, leaderboard, # <--- LEADERBOARD EKLENDİ
     dashboard, register, logout_view, add_skill, 
     search_skills, request_session, complete_session, 
     add_review, admin_stats, inbox, send_message,
@@ -24,12 +23,13 @@ urlpatterns = [
     path('uniskill-yonetim-2025/', admin.site.urls),
     path('admin/', lambda request: redirect('/')),
 
-    # --- ANA SAYFA DEĞİŞİKLİĞİ ---
-    # Artık ana sayfa Landing Page'e gidiyor
+    # Ana Sayfa & Dashboard
     path('', landing_page, name='landing_page'),
-    
-    # Dashboard artık kendi adresinde
     path('dashboard/', dashboard, name='dashboard'),
+
+    # --- YENİ EKLENEN: LEADERBOARD ---
+    path('leaderboard/', leaderboard, name='leaderboard'),
+    # ---------------------------------
 
     # Kimlik Doğrulama
     path('login/', CustomLoginView.as_view(), name='login'),

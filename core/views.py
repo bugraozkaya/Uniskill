@@ -17,7 +17,7 @@ from .models import (
     Review, 
     Message, 
     Profile,
-    Notification, # <--- YENİ EKLENDİ
+    Notification,
     CATEGORY_CHOICES
 )
 
@@ -136,10 +136,7 @@ def logout_view(request):
 def edit_profile(request):
     if request.method == 'POST':
         u_form = UserUpdateForm(request.POST, instance=request.user)
-        
-        # --- DÜZELTME BURADA: request.FILES EKLENDİ ---
         p_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
-        # ----------------------------------------------
         
         if u_form.is_valid() and p_form.is_valid():
             u_form.save()
@@ -513,24 +510,37 @@ def admin_stats(request):
 
     return render(request, 'core/admin_stats.html', context)
 
-# --- YENİ EKLENEN: BİLDİRİM OKUNDU YAPMA ---
 @login_required
 def mark_notification_as_read(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
     notification.is_read = True
     notification.save()
-    
-    # Link varsa git, yoksa dashboard'a
     return redirect(notification.link if notification.link else 'dashboard')
 
 
 # ---------------------------------------------------------
-# 4. LANDING PAGE
+# 4. LANDING PAGE & LEADERBOARD
 # ---------------------------------------------------------
 
 def landing_page(request):
-    # Eğer kullanıcı zaten giriş yapmışsa, vitrini gösterme, direkt içeri al.
     if request.user.is_authenticated:
         return redirect('dashboard')
-    # Giriş yapmamışsa vitrin (landing) sayfasını göster.
     return render(request, 'core/landing.html')
+
+# --- YENİ EKLENEN: LEADERBOARD ---
+def leaderboard(request):
+    # 1. En Çok Ders Verenler
+    most_active = User.objects.annotate(
+        session_count=Count('given_sessions', filter=Q(given_sessions__status='completed'))
+    ).filter(session_count__gt=0).order_by('-session_count')[:10]
+
+    # 2. En Yüksek Puanlılar
+    top_rated = User.objects.annotate(
+        avg_rating=Avg('given_sessions__review__rating')
+    ).filter(avg_rating__isnull=False).order_by('-avg_rating')[:10]
+
+    context = {
+        'most_active': most_active,
+        'top_rated': top_rated
+    }
+    return render(request, 'core/leaderboard.html', context)

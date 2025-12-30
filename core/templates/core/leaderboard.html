@@ -1,0 +1,137 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container mb-5">
+    <div class="text-center mb-5">
+        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning px-3 py-2 rounded-pill mb-3 fw-bold letter-spacing-1">
+            <i class="fas fa-trophy me-2"></i>HALL OF FAME
+        </span>
+        <h2 class="fw-bold display-5 text-dark">Top Tutors Leaderboard</h2>
+        <p class="text-muted">Celebrating our most dedicated and highest-rated community members.</p>
+    </div>
+
+    <div class="row g-4">
+        
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
+                <div class="card-header bg-primary text-white p-4 border-0 text-center position-relative overflow-hidden">
+                    <div class="position-relative z-1">
+                        <i class="fas fa-fire fa-3x mb-3 text-white opacity-75"></i>
+                        <h4 class="fw-bold mb-0">Most Active Tutors</h4>
+                        <p class="mb-0 small opacity-75">By total sessions given</p>
+                    </div>
+                    <div class="position-absolute top-0 end-0 translate-middle rounded-circle bg-white opacity-10" style="width: 200px; height: 200px;"></div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for user in most_active %}
+                        <div class="list-group-item border-0 p-4 d-flex align-items-center hover-bg-light transition-hover">
+                            <div class="me-4 text-center" style="width: 40px;">
+                                {% if forloop.counter == 1 %}
+                                    <span class="fs-2">🥇</span>
+                                {% elif forloop.counter == 2 %}
+                                    <span class="fs-2">🥈</span>
+                                {% elif forloop.counter == 3 %}
+                                    <span class="fs-2">🥉</span>
+                                {% else %}
+                                    <span class="fw-bold text-muted h4 mb-0">#{{ forloop.counter }}</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="position-relative me-3">
+                                <img src="{{ user.profile.avatar.url }}" class="rounded-circle shadow-sm border border-2 border-white" style="width: 60px; height: 60px; object-fit: cover;">
+                                {% if forloop.counter == 1 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning border border-white">
+                                    <i class="fas fa-crown text-white" style="font-size: 0.6rem;"></i>
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <a href="{% url 'public_profile' user.id %}" class="text-decoration-none text-dark stretched-link">
+                                        {{ user.get_full_name|default:user.username }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">{{ user.profile.department }}</small>
+                            </div>
+
+                            <div class="text-end">
+                                <h4 class="fw-bold text-primary mb-0">{{ user.session_count }}</h4>
+                                <small class="text-muted fw-bold" style="font-size: 0.65rem;">SESSIONS</small>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center p-5 text-muted">
+                            <p>No active tutors yet. Be the first!</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden h-100">
+                <div class="card-header bg-success text-white p-4 border-0 text-center position-relative overflow-hidden">
+                    <div class="position-relative z-1">
+                        <i class="fas fa-star fa-3x mb-3 text-white opacity-75"></i>
+                        <h4 class="fw-bold mb-0">Top Rated Tutors</h4>
+                        <p class="mb-0 small opacity-75">By average student rating</p>
+                    </div>
+                    <div class="position-absolute top-0 start-0 translate-middle rounded-circle bg-white opacity-10" style="width: 200px; height: 200px;"></div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for user in top_rated %}
+                        <div class="list-group-item border-0 p-4 d-flex align-items-center hover-bg-light transition-hover">
+                            <div class="me-4 text-center" style="width: 40px;">
+                                {% if forloop.counter == 1 %}
+                                    <span class="fs-2">🥇</span>
+                                {% elif forloop.counter == 2 %}
+                                    <span class="fs-2">🥈</span>
+                                {% elif forloop.counter == 3 %}
+                                    <span class="fs-2">🥉</span>
+                                {% else %}
+                                    <span class="fw-bold text-muted h4 mb-0">#{{ forloop.counter }}</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="me-3">
+                                <img src="{{ user.profile.avatar.url }}" class="rounded-circle shadow-sm border border-2 border-white" style="width: 60px; height: 60px; object-fit: cover;">
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <a href="{% url 'public_profile' user.id %}" class="text-decoration-none text-dark stretched-link">
+                                        {{ user.get_full_name|default:user.username }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">{{ user.profile.department }}</small>
+                            </div>
+
+                            <div class="text-end text-warning">
+                                <div class="h4 fw-bold mb-0 d-flex align-items-center justify-content-end gap-1">
+                                    {{ user.avg_rating|floatformat:1 }} <i class="fas fa-star fa-sm"></i>
+                                </div>
+                                <small class="text-muted fw-bold" style="font-size: 0.65rem;">RATING</small>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center p-5 text-muted">
+                            <p>No ratings yet.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .letter-spacing-1 { letter-spacing: 1px; }
+    .hover-bg-light:hover { background-color: #f8f9fa; }
+</style>
+{% endblock %}
