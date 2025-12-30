@@ -113,7 +113,7 @@ class CustomLoginView(LoginView):
 
         return super().form_valid(form) 
 
-# --- GÜNCELLENEN REGISTER FONKSİYONU (AKTİVASYON MAİLİ İLE) ---
+# --- REGISTER FONKSİYONU (AKTİVASYON MAİLİ İLE) ---
 def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST) 
@@ -158,7 +158,7 @@ def register(request):
     
     return render(request, 'core/register.html', {'form': form})
 
-# --- YENİ EKLENEN: AKTİVASYON FONKSİYONU ---
+# --- AKTİVASYON FONKSİYONU (OTOMATİK ADMIN ONAYI DAHİL) ---
 def activate(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -167,15 +167,16 @@ def activate(request, uidb64, token):
         user = None
     
     if user is not None and default_token_generator.check_token(user, token):
-        user.is_active = True # HESABI AKTİF ET
+        # 1. Hesabı aç
+        user.is_active = True 
         user.save()
         
-        # Profil status'ünü de active yapalım (Admin onayı beklemeden giriş yapabilsin diye)
-        # Eğer admin onayı zorunlu kalsın istiyorsan burayı silebilirsin.
-        # user.profile.status = 'active'
-        # user.profile.save()
+        # 2. Profil durumunu 'active' yap (Admin onayını otomatikleştiriyoruz!)
+        if hasattr(user, 'profile'):
+            user.profile.status = 'active'
+            user.profile.save()
 
-        messages.success(request, 'Thank you for your email confirmation. Now you can login your account.')
+        messages.success(request, 'Thank you! Your account is fully active now. You can login.')
         return redirect('login')
     else:
         messages.error(request, 'Activation link is invalid!')
@@ -332,7 +333,7 @@ def search_skills(request):
     }
     return render(request, 'core/search_skills.html', context)
 
-# --- GÜNCELLENEN REQUEST_SESSION (BİLDİRİM MAİLİ İLE) ---
+# --- REQUEST_SESSION (MAİL BİLDİRİMİ İLE) ---
 @login_required
 def request_session(request, skill_id):
     skill = get_object_or_404(UserSkill, id=skill_id)
