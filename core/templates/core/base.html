@@ -211,8 +211,12 @@
                             <img src="{{ user.profile.avatar.url }}" class="rounded-circle shadow-sm border border-white bg-white" style="width: 40px; height: 40px; object-fit: cover;">
                             <div class="d-none d-lg-block text-start lh-1">
                                 <span class="d-block text-dark fw-bold small">{{ user.first_name }}</span>
-                                <span class="d-block text-muted" style="font-size: 0.7rem;">Student</span>
-                            </div>
+                                
+                                <span class="d-block small fw-bold {{ user.profile.get_rank_info.color }}" style="font-size: 0.7rem;">
+                                    <i class="{{ user.profile.get_rank_info.icon }} me-1"></i>
+                                    {{ user.profile.get_rank_info.title }}
+                                </span>
+                                </div>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><h6 class="dropdown-header text-uppercase small fw-bold text-muted letter-spacing-1">Account</h6></li>
@@ -339,7 +343,6 @@
         {% if messages %}
             {% for message in messages %}
                 Swal.fire({
-                    // Django 'error' etiketini 'danger' olarak da yollayabilir, onu 'error'a çeviriyoruz
                     icon: "{% if message.tags == 'danger' or message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}success{% endif %}",
                     title: "{% if message.tags == 'success' %}Başarılı!{% elif message.tags == 'error' or message.tags == 'danger' %}Hata!{% elif message.tags == 'warning' %}Dikkat!{% else %}Bilgi{% endif %}",
                     text: "{{ message|safe }}",

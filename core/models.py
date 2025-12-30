@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
+from django.db.models import Sum # <-- 1. BU SATIR EKLENDİ (Toplam hesaplama için)
 
 # ---------------------------------------------------------
 # 1. GLOBAL CHOICES (Used in multiple models)
@@ -42,6 +43,23 @@ class Profile(models.Model):
     referral_code = models.CharField(max_length=10, blank=True, null=True, unique=True)
     used_referral = models.CharField(max_length=10, blank=True, null=True)
     is_rewarded = models.BooleanField(default=False, verbose_name="Referral Reward Given?")
+
+    # --- 2. YENİ EKLENEN: RÜTBE HESAPLAMA SİSTEMİ ---
+    @property
+    def get_rank_info(self):
+        # Kullanıcının verdiği (tamamlanmış) toplam ders saati
+        total_hours = self.user.given_sessions.filter(status='completed').aggregate(Sum('duration'))['duration__sum'] or 0
+        
+        # Rütbe Mantığı
+        if total_hours >= 50:
+            return {'title': 'Master Sensei', 'icon': 'fas fa-crown', 'color': 'text-warning'} # Altın
+        elif total_hours >= 20:
+            return {'title': 'Senior Mentor', 'icon': 'fas fa-medal', 'color': 'text-secondary'} # Gümüş
+        elif total_hours >= 5:
+            return {'title': 'Junior Tutor', 'icon': 'fas fa-award', 'color': 'text-danger'} # Bronz
+        else:
+            return {'title': 'Newbie', 'icon': 'fas fa-seedling', 'color': 'text-success'} # Yeşil (Başlangıç)
+    # ---------------------------------------------
 
     def __str__(self):
         return str(self.user)
