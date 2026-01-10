@@ -123,3 +123,20 @@ class DegerlendirmeFormu(forms.ModelForm):
             'rating': forms.Select(attrs={'class': 'form-select'}),
             'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'How was the session?'}),
         }
+
+# 7. CONTACT FORM (YENİ EKLENEN)
+class ContactForm(forms.Form):
+    name = forms.CharField(
+        max_length=100, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Your Name'})
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Your Email'})
+    )
+    subject = forms.CharField(
+        max_length=200, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Subject'})
+    )
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Your Message'})
+    )

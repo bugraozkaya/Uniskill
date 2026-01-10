@@ -1,0 +1,73 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5 mb-4">
+            <div class="h-100 p-4 bg-primary text-white rounded-4 shadow-sm">
+                <h2 class="fw-bold mb-4">Get in Touch</h2>
+                <p class="mb-4">Have questions about UniSkill? We're here to help! Fill out the form or reach us via email.</p>
+                
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                        <i class="fas fa-envelope fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="d-block text-white-50">Email</small>
+                        <span class="fw-bold">bugraozkaya750@gmail.com</span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                        <i class="fas fa-map-marker-alt fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="d-block text-white-50">Location</small>
+                        <span class="fw-bold">Sivas Science & Tech University</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card border-0 shadow-lg rounded-4">
+                <div class="card-body p-4 p-md-5">
+                    <h3 class="fw-bold text-dark mb-4">Send us a Message</h3>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small fw-bold">YOUR NAME</label>
+                                {{ form.name }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label text-muted small fw-bold">EMAIL ADDRESS</label>
+                                {{ form.email }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">SUBJECT</label>
+                            {{ form.subject }}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-muted small fw-bold">MESSAGE</label>
+                            {{ form.message }}
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary py-3 rounded-3 fw-bold">
+                                Send Message <i class="fas fa-paper-plane ms-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

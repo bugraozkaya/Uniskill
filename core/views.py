@@ -39,7 +39,8 @@ from .forms import (
     MesajFormu, 
     UserUpdateForm, 
     ProfileUpdateForm, 
-    DegerlendirmeFormu
+    DegerlendirmeFormu,
+    ContactForm # <-- YENİ EKLENEN: ContactForm import edildi
 )
 
 User = get_user_model()
@@ -76,6 +77,27 @@ class CustomLoginView(LoginView):
         return super().get(request, *args, **kwargs)
 
     def form_invalid(self, form):
+        # --- NEW: Check for unverified email ---
+        username = form.data.get('username')
+        password = form.data.get('password')
+
+        if username and password:
+            try:
+                # Attempt to retrieve the user
+                user = User.objects.get(username=username)
+                
+                # Check password validity
+                if user.check_password(password):
+                    # Password is correct, but account is inactive (email not verified)
+                    if not user.is_active:
+                        messages.warning(self.request, "Your account is not active yet. Please click the activation link sent to your email.")
+                        # Return the form without incrementing the fail count
+                        return self.render_to_response(self.get_context_data(form=form))
+            except User.DoesNotExist:
+                # User does not exist, proceed to normal error handling
+                pass
+        # ---------------------------------------
+
         ip = self.get_client_ip(self.request)
         fail_key = f'user_fail_{ip}'
         
@@ -635,3 +657,37 @@ def leaderboard(request):
         'top_rated': top_rated
     }
     return render(request, 'core/leaderboard.html', context)
+
+# ---------------------------------------------------------
+# 5. CONTACT US (YENİ EKLENEN FONKSİYON)
+# ---------------------------------------------------------
+def contact_us(request):
+    if request.method == 'POST':
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            # Verileri al
+            name = form.cleaned_data['name']
+            email = form.cleaned_data['email']
+            subject = form.cleaned_data['subject']
+            message = form.cleaned_data['message']
+
+            # Mail içeriğini hazırla
+            full_message = f"Sender Name: {name}\nSender Email: {email}\n\nMessage:\n{message}"
+            
+            # Yöneticiye (Sana) mail gönder
+            try:
+                send_mail(
+                    f"UniSkill Contact: {subject}", # Konu Başlığı
+                    full_message, # Mesaj
+                    settings.EMAIL_HOST_USER, # Gönderen (Senin sistem mailin)
+                    [settings.EMAIL_HOST_USER], # Alıcı (Yine sen - kendine mail atıyorsun)
+                    fail_silently=False,
+                )
+                messages.success(request, "Your message has been sent successfully! We will get back to you soon.")
+                return redirect('contact')
+            except:
+                messages.error(request, "An error occurred while sending the message. Please try again.")
+    else:
+        form = ContactForm()
+
+    return render(request, 'core/contact.html', {'form': form})

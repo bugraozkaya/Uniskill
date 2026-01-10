@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 # 'render' fonksiyonu gerekli
 from django.shortcuts import redirect, render 
-from django.contrib.auth import views as auth_views # <-- YENİ EKLENEN IMPORT
+from django.contrib.auth import views as auth_views 
 
 from core import views
 
@@ -19,7 +19,8 @@ from core.views import (
     meeting_room, cancel_session,
     public_profile, edit_profile,
     mark_notification_as_read,
-    activate 
+    activate,
+    contact_us # <-- YENİ EKLENEN: İletişim fonksiyonunu import ettik
 )
 
 urlpatterns = [
@@ -42,23 +43,19 @@ urlpatterns = [
     # E-POSTA AKTİVASYON YOLU
     path('activate/<uidb64>/<token>/', activate, name='activate'),
 
-    # --- ŞİFRE SIFIRLAMA YOLLARI (YENİ EKLENEN KISIM) ---
-    # 1. Şifre sıfırlama isteği (Mail girilen sayfa)
+    # --- ŞİFRE SIFIRLAMA YOLLARI ---
     path('reset_password/', 
          auth_views.PasswordResetView.as_view(template_name="core/password_reset.html"), 
          name="reset_password"),
 
-    # 2. Mail gönderildi mesajı
     path('reset_password_sent/', 
          auth_views.PasswordResetDoneView.as_view(template_name="core/password_reset_sent.html"), 
          name="password_reset_done"),
 
-    # 3. Yeni şifre belirleme sayfası (Maildeki link buraya gelir)
     path('reset/<uidb64>/<token>/', 
          auth_views.PasswordResetConfirmView.as_view(template_name="core/password_reset_form.html"), 
          name="password_reset_confirm"),
 
-    # 4. İşlem tamamlandı mesajı
     path('reset_password_complete/', 
          auth_views.PasswordResetCompleteView.as_view(template_name="core/password_reset_done.html"), 
          name="password_reset_complete"),
@@ -94,6 +91,10 @@ urlpatterns = [
 
     # Bildirim Sistemi
     path('notification/read/<int:notification_id>/', mark_notification_as_read, name='mark_notification_as_read'),
+
+    # --- YENİ EKLENEN: İLETİŞİM SAYFASI ---
+    path('contact/', contact_us, name='contact'),
+    # --------------------------------------
 
     # --- GEÇİCİ 404 TEST LİNKİ ---
     path('test-404/', lambda request: render(request, 'core/404.html')),
