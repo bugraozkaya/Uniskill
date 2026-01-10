@@ -11,19 +11,19 @@
                 </h5>
             </div>
             <div class="card-body p-4">
-                <form method="GET" action="{% url 'search_skills' %}">
+                <form method="GET" action="{% url 'search_skills' %}" id="filter-form">
                     
                     <div class="mb-4">
                         <label class="form-label small fw-bold text-muted text-uppercase">Search</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" name="q" class="form-control bg-light border-start-0" placeholder="Skill, user, keyword..." value="{{ query|default:'' }}">
+                            <input type="text" name="q" id="search-input" class="form-control bg-light border-start-0" placeholder="Skill, user, keyword..." value="{{ query|default:'' }}" autocomplete="off">
                         </div>
                     </div>
 
                     <div class="mb-4">
                         <label class="form-label small fw-bold text-muted text-uppercase">Category</label>
-                        <select name="category" class="form-select bg-light border-0">
+                        <select name="category" class="form-select bg-light border-0 filter-trigger">
                             <option value="all">All Categories</option>
                             {% for code, name in categories %}
                                 <option value="{{ code }}" {% if selected_category == code %}selected{% endif %}>{{ name }}</option>
@@ -36,7 +36,7 @@
                         <div class="d-flex gap-2">
                             {% for i in "43" %}
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="rating" value="{{ i }}" id="rating{{ i }}" {% if selected_rating == i %}checked{% endif %}>
+                                <input class="form-check-input filter-trigger" type="radio" name="rating" value="{{ i }}" id="rating{{ i }}" {% if selected_rating == i %}checked{% endif %}>
                                 <label class="form-check-label" for="rating{{ i }}">
                                     {{ i }}+ <i class="fas fa-star text-warning"></i>
                                 </label>
@@ -47,7 +47,7 @@
 
                     <div class="mb-4">
                         <label class="form-label small fw-bold text-muted text-uppercase">Sort By</label>
-                        <select name="sort" class="form-select bg-light border-0">
+                        <select name="sort" class="form-select bg-light border-0 filter-trigger">
                             <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Newest First</option>
                             <option value="rating" {% if selected_sort == 'rating' %}selected{% endif %}>Highest Rated</option>
                         </select>
@@ -65,78 +65,17 @@
     <div class="col-lg-9">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="fw-bold mb-0">
-                Found Skills <span class="text-muted fw-normal">({{ skills.count }})</span>
+                Found Skills 
+                <span class="text-muted fw-normal" id="result-count"></span>
             </h4>
+            
+            <div id="loading-spinner" class="spinner-border text-primary spinner-border-sm d-none" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
         </div>
 
-        <div class="row g-4">
-            {% for us in skills %}
-            <div class="col-md-6 col-xl-4">
-                <div class="card h-100 border-0 shadow-sm rounded-4 hover-up transition-hover">
-                    <div class="card-body p-4 d-flex flex-column">
-                        
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div class="d-flex align-items-center">
-                                <a href="{% url 'public_profile' us.user.id %}">
-                                    <img src="{{ us.user.profile.avatar.url }}" class="rounded-circle border" style="width: 45px; height: 45px; object-fit: cover;">
-                                </a>
-                                <div class="ms-2 lh-1">
-                                    <h6 class="mb-1 fw-bold text-dark small">
-                                        <a href="{% url 'public_profile' us.user.id %}" class="text-decoration-none text-dark">{{ us.user.get_full_name }}</a>
-                                    </h6>
-                                    <small class="text-muted" style="font-size: 0.7rem;">{{ us.user.profile.department|default:"Student" }}</small>
-                                </div>
-                            </div>
-                            <div class="bg-light rounded px-2 py-1">
-                                <small class="fw-bold text-warning">
-                                    {% if us.average_rating %}
-                                        {{ us.average_rating|floatformat:1 }} <i class="fas fa-star"></i>
-                                    {% else %}
-                                        New
-                                    {% endif %}
-                                </small>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <span class="badge bg-primary bg-opacity-10 text-primary mb-2">{{ us.skill.get_category_display }}</span>
-                            <h5 class="fw-bold text-dark mb-1">{{ us.skill.name }}</h5>
-                            <p class="text-muted small mb-0 text-truncate-2">{{ us.skill.description }}</p>
-                        </div>
-
-                        <div class="mt-auto pt-3 border-top d-flex gap-2">
-                            {% if request.user != us.user %}
-                                <a href="{% url 'request_session' us.id %}" class="btn btn-primary btn-sm flex-grow-1 rounded-pill fw-bold">Request</a>
-                                <a href="{% url 'messaging' us.user.id %}" class="btn btn-light btn-sm rounded-circle text-primary border" title="Message">
-                                    <i class="far fa-envelope"></i>
-                                </a>
-                            {% else %}
-                                <button class="btn btn-light btn-sm w-100 rounded-pill text-muted" disabled>Your Skill</button>
-                            {% endif %}
-                        </div>
-
-                    </div>
-                    <div class="card-footer bg-light border-0 py-2 px-4 rounded-bottom-4">
-                        <small class="text-muted">
-                            {% if us.location == 'online' %}
-                                <i class="fas fa-video me-1 text-success"></i> Online
-                            {% else %}
-                                <i class="fas fa-map-marker-alt me-1 text-danger"></i> Campus
-                            {% endif %}
-                        </small>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-            <div class="col-12 text-center py-5">
-                <div class="bg-light rounded-circle p-4 d-inline-block mb-3">
-                    <i class="fas fa-search fa-3x text-muted opacity-25"></i>
-                </div>
-                <h4 class="fw-bold text-muted">No skills found</h4>
-                <p class="text-muted">Try adjusting your filters or search terms.</p>
-                <a href="{% url 'search_skills' %}" class="btn btn-outline-primary rounded-pill px-4 mt-2">Clear All Filters</a>
-            </div>
-            {% endfor %}
+        <div id="results-container">
+            {% include 'core/skill_list_partial.html' %}
         </div>
     </div>
 </div>
@@ -153,4 +92,62 @@
         overflow: hidden;
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-input');
+        const resultsContainer = document.getElementById('results-container');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const filterForm = document.getElementById('filter-form');
+        
+        // Filtre tetikleyicileri (Select ve Radio butonları)
+        const filterTriggers = document.querySelectorAll('.filter-trigger');
+
+        let timeout = null;
+
+        // Arama Fonksiyonu
+        function fetchResults() {
+            // 1. Form verilerini al
+            const formData = new FormData(filterForm);
+            
+            // Parametreleri URL formatına çevir
+            const params = new URLSearchParams(formData);
+            params.append('is_ajax', '1'); // Django'ya bunun AJAX olduğunu söyle
+
+            // 2. Yükleniyor spinner'ını göster ve opaklığı düşür
+            resultsContainer.style.opacity = '0.5';
+            loadingSpinner.classList.remove('d-none');
+
+            // 3. İsteği Gönder (Fetch API)
+            fetch(`{% url 'search_skills' %}?${params.toString()}`)
+                .then(response => response.text())
+                .then(html => {
+                    // 4. Gelen HTML'i kutuya koy
+                    resultsContainer.innerHTML = html;
+                    
+                    // Görünümü düzelt
+                    resultsContainer.style.opacity = '1';
+                    loadingSpinner.classList.add('d-none');
+                    
+                    // URL'i güncelle (Sayfa yenilenirse aynı arama kalsın diye)
+                    const newUrl = `${window.location.pathname}?${params.toString().replace('&is_ajax=1', '')}`;
+                    window.history.pushState({}, '', newUrl);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Klavye tuşuna basınca çalış (300ms gecikmeli - Debounce)
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(fetchResults, 300);
+        });
+
+        // Filtrelerden biri değişince (Category, Sort, Rating) otomatik çalış
+        filterTriggers.forEach(element => {
+            element.addEventListener('change', function() {
+                fetchResults();
+            });
+        });
+    });
+</script>
 {% endblock %}

@@ -40,7 +40,7 @@ from .forms import (
     UserUpdateForm, 
     ProfileUpdateForm, 
     DegerlendirmeFormu,
-    ContactForm # <-- YENİ EKLENEN: ContactForm import edildi
+    ContactForm
 )
 
 User = get_user_model()
@@ -316,6 +316,7 @@ def add_skill(request):
 
     return render(request, 'core/add_skill.html', {'form': form})
 
+# --- GÜNCELLENEN SEARCH_SKILLS (AJAX DESTEKLİ) ---
 def search_skills(request):
     skills = UserSkill.objects.filter(is_approved=True).annotate(
         average_rating=Avg('user__given_sessions__review__rating')
@@ -353,6 +354,13 @@ def search_skills(request):
         'selected_sort': sort_by,
         'query': query
     }
+
+    # --- AJAX KONTROLÜ (YENİ KISIM) ---
+    # Eğer istek JavaScript'ten geliyorsa (is_ajax=1 parametresi varsa)
+    if request.GET.get('is_ajax'):
+        return render(request, 'core/skill_list_partial.html', context)
+    # ----------------------------------
+
     return render(request, 'core/search_skills.html', context)
 
 # --- REQUEST_SESSION (MAİL BİLDİRİMİ İLE) ---
