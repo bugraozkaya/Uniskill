@@ -19,6 +19,17 @@ CATEGORY_CHOICES = [
     ('other', 'Other'),
 ]
 
+# --- YENİ EKLENEN: BLOG KATEGORİLERİ ---
+BLOG_CATEGORY_CHOICES = [
+    ('general', 'General Discussion'),
+    ('campus', 'Campus Life & Events'),
+    ('tech', 'Technology & Coding'),
+    ('study', 'Study Tips & Resources'),
+    ('career', 'Career & Internship'),
+    ('social', 'Social & Fun'),
+]
+# ---------------------------------------
+
 # ---------------------------------------------------------
 # 2. PROFILE MODEL (Extends User with Balance & Status)
 # ---------------------------------------------------------
@@ -174,7 +185,12 @@ class Notification(models.Model):
 class BlogPost(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    slug = models.SlugField(unique=True, blank=True) # URL için
+    slug = models.SlugField(unique=True, blank=True)
+    
+    # --- YENİ EKLENEN: KATEGORİ ALANI ---
+    category = models.CharField(max_length=20, choices=BLOG_CATEGORY_CHOICES, default='general')
+    # ------------------------------------
+
     content = models.TextField()
     image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

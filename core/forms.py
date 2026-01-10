@@ -1,8 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
-# --- YENİ EKLENEN: BlogPost ve Comment import edildi ---
-from .models import UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES, Profile, BlogPost, Comment
+# --- YENİ EKLENEN: Kategori listesi import edildi ---
+from .models import UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES, Profile, BlogPost, Comment, BLOG_CATEGORY_CHOICES
 
 # Get the correct User model
 User = get_user_model()
@@ -143,11 +143,18 @@ class ContactForm(forms.Form):
 
 # --- YENİ EKLENEN FORMLAR ---
 
-# 8. BLOG POST FORM
+# 8. BLOG POST FORM (GÜNCELLENMİŞ)
 class BlogPostForm(forms.ModelForm):
+    # Kategori seçimi için Dropdown
+    category = forms.ChoiceField(
+        label="Category", 
+        choices=BLOG_CATEGORY_CHOICES, 
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = BlogPost
-        fields = ['title', 'content', 'image']
+        fields = ['title', 'category', 'content', 'image']
         labels = {
             'title': 'Article Title',
             'content': 'Content',

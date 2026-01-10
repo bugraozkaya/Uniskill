@@ -34,7 +34,8 @@ from .models import (
     Profile, 
     Notification, 
     CATEGORY_CHOICES,
-    BlogPost, Comment 
+    BlogPost, Comment,
+    BLOG_CATEGORY_CHOICES # <-- YENİ EKLENEN: Kategori listesi import edildi
 )
 
 # --- FORMS ---
@@ -706,12 +707,33 @@ def contact_us(request):
     return render(request, 'core/contact.html', {'form': form})
 
 # ---------------------------------------------------------
-# 6. BLOG & COMMUNITY SYSTEM VIEWS
+# 6. BLOG & COMMUNITY SYSTEM VIEWS (GÜNCELLENEN)
 # ---------------------------------------------------------
 
 def blog_list(request):
+    # En yeniden eskiye doğru sırala
     posts = BlogPost.objects.all().order_by('-created_at')
-    return render(request, 'core/blog_list.html', {'posts': posts})
+    
+    # 1. ARAMA YAPILDIYSA FİLTRELE
+    query = request.GET.get('q')
+    if query:
+        posts = posts.filter(
+            Q(title__icontains=query) | 
+            Q(content__icontains=query)
+        )
+
+    # 2. KATEGORİ SEÇİLDİYSE FİLTRELE
+    category_filter = request.GET.get('category')
+    if category_filter:
+        posts = posts.filter(category=category_filter)
+
+    context = {
+        'posts': posts,
+        'categories': BLOG_CATEGORY_CHOICES, # Kategorileri şablona gönder
+        'selected_category': category_filter,
+        'query': query
+    }
+    return render(request, 'core/blog_list.html', context)
 
 @login_required
 def blog_detail(request, slug):
@@ -740,13 +762,12 @@ def blog_detail(request, slug):
         'form': form
     })
 
-# --- GÜNCELLENEN: AJAX İÇİN JSON DÖNDÜREN VOTE FONKSİYONU ---
+# --- AJAX İÇİN JSON DÖNDÜREN VOTE FONKSİYONU ---
 @login_required
 def vote_comment(request, comment_id, vote_type):
     comment = get_object_or_404(Comment, id=comment_id)
     user = request.user
     
-    # Kullanıcının son durumu (frontend için)
     user_action = 'none' 
 
     if vote_type == 'like':
@@ -771,7 +792,6 @@ def vote_comment(request, comment_id, vote_type):
             comment.dislikes.add(user)
             user_action = 'disliked'
             
-    # JSON döndür (Sayfa yenilenmez)
     return JsonResponse({
         'likes_count': comment.likes.count(),
         'dislikes_count': comment.dislikes.count(),
