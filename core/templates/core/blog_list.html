@@ -1,0 +1,89 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="fw-bold display-6 mb-1">Community Hub</h2>
+            <p class="text-muted lead mb-0">Share knowledge, experiences, and campus life.</p>
+        </div>
+        <a href="{% url 'blog_create' %}" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm transition-hover">
+            <i class="fas fa-pen-nib me-2"></i> Write Article
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {% for post in posts %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 hover-card overflow-hidden">
+                
+                <a href="{% url 'blog_detail' post.slug %}" class="d-block position-relative">
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="fas fa-image fa-3x text-muted opacity-25"></i>
+                        </div>
+                    {% endif %}
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-white text-dark shadow-sm rounded-pill px-3 py-2">
+                            <i class="far fa-heart text-danger me-1"></i> {{ post.likes.count }}
+                        </span>
+                    </div>
+                </a>
+
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ post.author.profile.avatar.url }}" class="rounded-circle border" style="width: 35px; height: 35px; object-fit: cover;">
+                        <div class="ms-2 lh-1">
+                            <span class="d-block fw-bold small text-dark">{{ post.author.get_full_name }}</span>
+                            <small class="text-muted" style="font-size: 0.75rem;">{{ post.created_at|date:"M d, Y" }}</small>
+                        </div>
+                    </div>
+
+                    <h5 class="card-title fw-bold mb-2">
+                        <a href="{% url 'blog_detail' post.slug %}" class="text-decoration-none text-dark stretched-link">
+                            {{ post.title|truncatechars:50 }}
+                        </a>
+                    </h5>
+                    <p class="card-text text-muted small mb-4 line-clamp-3">
+                        {{ post.content|striptags|truncatewords:20 }}
+                    </p>
+
+                    <div class="mt-auto d-flex justify-content-between align-items-center pt-3 border-top">
+                        <small class="text-primary fw-bold">Read More <i class="fas fa-arrow-right ms-1"></i></small>
+                        <small class="text-muted"><i class="far fa-comment me-1"></i> {{ post.comments.count }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="bg-light rounded-circle p-4 d-inline-block mb-3">
+                <i class="fas fa-feather-alt fa-3x text-muted opacity-25"></i>
+            </div>
+            <h3 class="fw-bold text-muted">It's quiet here...</h3>
+            <p class="text-muted">Be the first to share something with the community!</p>
+            <a href="{% url 'blog_create' %}" class="btn btn-outline-primary rounded-pill px-4 mt-2">Start Writing</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}

@@ -20,7 +20,10 @@ from core.views import (
     public_profile, edit_profile,
     mark_notification_as_read,
     activate,
-    contact_us # <-- YENİ EKLENEN: İletişim fonksiyonunu import ettik
+    contact_us,
+    # --- YENİ EKLENEN BLOG VIEWLARI ---
+    blog_list, blog_detail, blog_create,
+    vote_comment # <-- YENİ EKLENEN: Oy verme fonksiyonu
 )
 
 urlpatterns = [
@@ -92,9 +95,17 @@ urlpatterns = [
     # Bildirim Sistemi
     path('notification/read/<int:notification_id>/', mark_notification_as_read, name='mark_notification_as_read'),
 
-    # --- YENİ EKLENEN: İLETİŞİM SAYFASI ---
+    # İletişim Sayfası
     path('contact/', contact_us, name='contact'),
-    # --------------------------------------
+
+    # --- BLOG & COMMUNITY SİSTEMİ ---
+    path('community/', blog_list, name='blog_list'),
+    path('community/write/', blog_create, name='blog_create'),
+    path('community/<slug:slug>/', blog_detail, name='blog_detail'),
+    
+    # --- YENİ EKLENEN: YORUM OYLAMA YOLU ---
+    path('comment/<int:comment_id>/vote/<str:vote_type>/', vote_comment, name='vote_comment'),
+    # ---------------------------------------
 
     # --- GEÇİCİ 404 TEST LİNKİ ---
     path('test-404/', lambda request: render(request, 'core/404.html')),

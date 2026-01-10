@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
-from .models import UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES, Profile
+# --- YENİ EKLENEN: BlogPost ve Comment import edildi ---
+from .models import UserSkill, Skill, Session, Review, Message, CATEGORY_CHOICES, Profile, BlogPost, Comment
 
 # Get the correct User model
 User = get_user_model()
@@ -99,7 +100,6 @@ class UserUpdateForm(forms.ModelForm):
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
-        # --- BURASI DEĞİŞTİ: Avatar alanı eklendi ---
         fields = ['department', 'avatar']
         labels = {
             'department': 'Department',
@@ -107,7 +107,7 @@ class ProfileUpdateForm(forms.ModelForm):
         }
         widgets = {
             'department': forms.TextInput(attrs={'class': 'form-control'}),
-            'avatar': forms.FileInput(attrs={'class': 'form-control'}), # Dosya yükleme butonu
+            'avatar': forms.FileInput(attrs={'class': 'form-control'}), 
         }
 
 # 6. REVIEW FORM
@@ -124,7 +124,7 @@ class DegerlendirmeFormu(forms.ModelForm):
             'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'How was the session?'}),
         }
 
-# 7. CONTACT FORM (YENİ EKLENEN)
+# 7. CONTACT FORM
 class ContactForm(forms.Form):
     name = forms.CharField(
         max_length=100, 
@@ -140,3 +140,31 @@ class ContactForm(forms.Form):
     message = forms.CharField(
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Your Message'})
     )
+
+# --- YENİ EKLENEN FORMLAR ---
+
+# 8. BLOG POST FORM
+class BlogPostForm(forms.ModelForm):
+    class Meta:
+        model = BlogPost
+        fields = ['title', 'content', 'image']
+        labels = {
+            'title': 'Article Title',
+            'content': 'Content',
+            'image': 'Cover Image (Optional)'
+        }
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter an engaging title...'}),
+            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 8, 'placeholder': 'Share your knowledge, tips, or experiences...'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+# 9. COMMENT FORM
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['body']
+        labels = {'body': ''}
+        widgets = {
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Write a comment...'})
+        }

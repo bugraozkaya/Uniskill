@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Sum # <-- 1. BU SATIR EKLENDİ (Toplam hesaplama için)
+from django.db.models import Sum
 
 # ---------------------------------------------------------
 # 1. GLOBAL CHOICES (Used in multiple models)
@@ -44,7 +44,7 @@ class Profile(models.Model):
     used_referral = models.CharField(max_length=10, blank=True, null=True)
     is_rewarded = models.BooleanField(default=False, verbose_name="Referral Reward Given?")
 
-    # --- 2. YENİ EKLENEN: RÜTBE HESAPLAMA SİSTEMİ ---
+    # --- RÜTBE HESAPLAMA SİSTEMİ ---
     @property
     def get_rank_info(self):
         # Kullanıcının verdiği (tamamlanmış) toplam ders saati
@@ -145,9 +145,9 @@ class Message(models.Model):
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
     body = models.TextField(blank=True, null=True) # Metin boş olabilir
-    # --- YENİ EKLENEN: Resim Alanı ---
+    # --- Resim Alanı ---
     image = models.ImageField(upload_to='message_images/', blank=True, null=True)
-    # ---------------------------------
+    # -------------------
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
@@ -166,3 +166,43 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.recipient}: {self.message}"
+
+# ---------------------------------------------------------
+# 7. BLOG & COMMUNITY SYSTEM (YENİ EKLENEN)
+# ---------------------------------------------------------
+
+class BlogPost(models.Model):
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True, blank=True) # URL için
+    content = models.TextField()
+    image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='blog_likes', blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            import uuid
+            self.slug = slugify(self.title) + "-" + str(uuid.uuid4())[:8]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+class Comment(models.Model):
+    post = models.ForeignKey(BlogPost, related_name='comments', on_delete=models.CASCADE)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # --- YENİ EKLENEN: BEĞENİ SİSTEMİ ---
+    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='comment_likes', blank=True)
+    dislikes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='comment_dislikes', blank=True)
+
+    def total_score(self):
+        return self.likes.count() - self.dislikes.count()
+
+    def __str__(self):
+        return f"Comment by {self.author} on {self.post.title}"

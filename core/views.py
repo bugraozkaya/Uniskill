@@ -1,11 +1,12 @@
-import json # <-- YENİ EKLENEN
-from datetime import timedelta # <-- YENİ EKLENEN
+import json
+from datetime import timedelta
 import time
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
+# Count, Sum, Avg zaten vardı, Count'u kullandığımızdan emin olalım
 from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
 from django.core.cache import cache
@@ -30,7 +31,8 @@ from .models import (
     Message, 
     Profile,
     Notification,
-    CATEGORY_CHOICES
+    CATEGORY_CHOICES,
+    BlogPost, Comment 
 )
 
 # --- FORMS ---
@@ -42,7 +44,8 @@ from .forms import (
     UserUpdateForm, 
     ProfileUpdateForm, 
     DegerlendirmeFormu,
-    ContactForm
+    ContactForm,
+    BlogPostForm, CommentForm
 )
 
 User = get_user_model()
@@ -256,7 +259,6 @@ def public_profile(request, user_id):
 # 2. DASHBOARD AND SESSION OPERATIONS
 # ---------------------------------------------------------
 
-# --- GÜNCELLENEN DASHBOARD (TAKVİM VERİSİ İLE) ---
 @login_required
 def dashboard(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
@@ -269,45 +271,39 @@ def dashboard(request):
     my_sessions = []
     past_sessions = []
     
-    # --- TAKVİM İÇİN OLAY LİSTESİ (YENİ KISIM) ---
+    # --- TAKVİM İÇİN OLAY LİSTESİ ---
     calendar_events = [] 
 
     for session in all_sessions:
-        # 1. Listeler için ayırma (Eski mantık)
         if session.status in ['cancelled', 'completed'] or session.is_expired:
             past_sessions.append(session)
         else:
             my_sessions.append(session)
         
-        # 2. Takvim Verisi Hazırlama (JSON için)
-        if session.status != 'cancelled': # İptal edilenleri takvimde gösterme
-            
-            # Renk ve Başlık Belirleme
+        if session.status != 'cancelled': 
             if request.user == session.student:
                 event_title = f"Learning: {session.skill.name}"
-                event_color = "#4f46e5" # Mavi (Primary)
+                event_color = "#4f46e5" 
             else:
                 event_title = f"Teaching: {session.skill.name}"
-                event_color = "#10b981" # Yeşil (Success)
+                event_color = "#10b981" 
 
-            # Bitiş saati hesapla
             end_time = session.date + timedelta(hours=session.duration)
 
             calendar_events.append({
                 'title': event_title,
-                'start': session.date.isoformat(), # YYYY-MM-DDTHH:MM formatı
+                'start': session.date.isoformat(), 
                 'end': end_time.isoformat(),
                 'backgroundColor': event_color,
                 'borderColor': event_color,
                 'url': f"/meeting/{session.id}/" if session.status == 'approved' else ""
             })
-    # ---------------------------------------------
+    # ----------------------------------
     
     past_sessions.reverse() 
 
     my_skills = UserSkill.objects.filter(user=request.user)
 
-    # Geçmiş oturumların puanlarını ayarla
     for session in past_sessions:
         review = Review.objects.filter(session=session).first()
         if review:
@@ -330,12 +326,10 @@ def dashboard(request):
         'lessons_given_count': lessons_given_count,
         'my_rating': my_rating,
         'received_reviews': received_reviews,
-        # Veriyi JSON string'e çevirip gönderiyoruz
         'calendar_events_json': json.dumps(calendar_events) 
     }
     
     return render(request, 'core/dashboard.html', context)
-# -------------------------------------------------
 
 @login_required
 def add_skill(request):
@@ -352,7 +346,6 @@ def add_skill(request):
 
     return render(request, 'core/add_skill.html', {'form': form})
 
-# --- GÜNCELLENEN SEARCH_SKILLS (AJAX DESTEKLİ) ---
 def search_skills(request):
     skills = UserSkill.objects.filter(is_approved=True).annotate(
         average_rating=Avg('user__given_sessions__review__rating')
@@ -391,15 +384,11 @@ def search_skills(request):
         'query': query
     }
 
-    # --- AJAX KONTROLÜ (YENİ KISIM) ---
-    # Eğer istek JavaScript'ten geliyorsa (is_ajax=1 parametresi varsa)
     if request.GET.get('is_ajax'):
         return render(request, 'core/skill_list_partial.html', context)
-    # ----------------------------------
 
     return render(request, 'core/search_skills.html', context)
 
-# --- REQUEST_SESSION (MAİL BİLDİRİMİ İLE) ---
 @login_required
 def request_session(request, skill_id):
     skill = get_object_or_404(UserSkill, id=skill_id)
@@ -419,7 +408,6 @@ def request_session(request, skill_id):
         )
         new_session.save()
 
-        # --- MAİL GÖNDERME KISMI (DERS TALEBİ) ---
         subject = f"UniSkill: New Session Request for {skill.skill.name}!"
         message = f"Hello {skill.user.first_name},\n\n{request.user.get_full_name()} wants to learn '{skill.skill.name}' from you.\n\nDate: {date_str}\nDuration: {duration} hours\n\nPlease log in to Approve or Reject this request: https://bugraozkaya.pythonanywhere.com/dashboard/"
         
@@ -434,7 +422,6 @@ def request_session(request, skill_id):
                 )
             except:
                 pass 
-        # -----------------------------------------
 
         messages.success(request, "Session request received! Waiting for approval.")
         return redirect('dashboard')
@@ -551,11 +538,6 @@ def meeting_room(request, session_id):
 
 @login_required
 def messaging(request, user_id=None):
-    """
-    Hem kişi listesini (sol) hem de aktif sohbeti (sağ) yöneten tek fonksiyon.
-    Resim gönderme özelliğini de destekler.
-    """
-    # 1. SOL TARAFTAKİ KİŞİ LİSTESİ
     messages_qs = Message.objects.filter(
         Q(sender=request.user) | Q(recipient=request.user)
     ).order_by('-created_at')
@@ -572,39 +554,33 @@ def messaging(request, user_id=None):
             })
             seen_users.add(other_user)
 
-    # 2. SAĞ TARAFTAKİ AKTİF SOHBET
     active_user = None
     chat_messages = []
     
     if user_id:
         active_user = get_object_or_404(User, id=user_id)
         
-        # Mesajları getir
         chat_messages = Message.objects.filter(
             (Q(sender=request.user) & Q(recipient=active_user)) |
             (Q(sender=active_user) & Q(recipient=request.user))
         ).order_by('created_at')
 
-        # Okundu yap
         unread = chat_messages.filter(recipient=request.user, is_read=False)
         unread.update(is_read=True)
 
-        # --- YENİ EKLENEN: RESİM DESTEKLİ MESAJ GÖNDERME ---
         if request.method == 'POST':
             content = request.POST.get('content')
-            image = request.FILES.get('image') # Formdan resmi al
+            image = request.FILES.get('image') 
             
-            # İçerik veya Resim varsa kaydet
             if content or image:
                 Message.objects.create(
                     sender=request.user,
                     recipient=active_user,
-                    body=content if content else "", # Metin yoksa boş string
-                    image=image # Resim verisi (veya None)
+                    body=content if content else "", 
+                    image=image 
                 )
 
-                # --- MAİL GÖNDERME KISMI (MESAJ) ---
-                if active_user.email: # Eğer kullanıcının maili varsa
+                if active_user.email: 
                     subject = f"UniSkill: New Message from {request.user.first_name}"
                     email_body = f"Hey {active_user.first_name},\n\n{request.user.get_full_name()} sent you a message:\n\n'{content if content else 'Sent a photo 📷'}'\n\nLog in to reply: https://bugraozkaya.pythonanywhere.com/messaging/{request.user.id}/"
                     
@@ -612,12 +588,9 @@ def messaging(request, user_id=None):
                         send_mail(subject, email_body, settings.EMAIL_HOST_USER, [active_user.email], fail_silently=True)
                     except:
                         pass
-                # ----------------------------------
 
                 return redirect('messaging', user_id=user_id)
-        # ---------------------------------------------------
 
-    # 3. YENİ SOHBET BAŞLATMA
     if request.method == 'POST' and not user_id:
         username = request.POST.get('username')
         if username:
@@ -684,14 +657,11 @@ def landing_page(request):
         return redirect('dashboard')
     return render(request, 'core/landing.html')
 
-# --- LEADERBOARD ---
 def leaderboard(request):
-    # 1. En Çok Ders Verenler
     most_active = User.objects.annotate(
         session_count=Count('given_sessions', filter=Q(given_sessions__status='completed'))
     ).filter(session_count__gt=0).order_by('-session_count')[:10]
 
-    # 2. En Yüksek Puanlılar
     top_rated = User.objects.annotate(
         avg_rating=Avg('given_sessions__review__rating')
     ).filter(avg_rating__isnull=False).order_by('-avg_rating')[:10]
@@ -703,28 +673,25 @@ def leaderboard(request):
     return render(request, 'core/leaderboard.html', context)
 
 # ---------------------------------------------------------
-# 5. CONTACT US (YENİ EKLENEN FONKSİYON)
+# 5. CONTACT US
 # ---------------------------------------------------------
 def contact_us(request):
     if request.method == 'POST':
         form = ContactForm(request.POST)
         if form.is_valid():
-            # Verileri al
             name = form.cleaned_data['name']
             email = form.cleaned_data['email']
             subject = form.cleaned_data['subject']
             message = form.cleaned_data['message']
 
-            # Mail içeriğini hazırla
             full_message = f"Sender Name: {name}\nSender Email: {email}\n\nMessage:\n{message}"
             
-            # Yöneticiye (Sana) mail gönder
             try:
                 send_mail(
-                    f"UniSkill Contact: {subject}", # Konu Başlığı
-                    full_message, # Mesaj
-                    settings.EMAIL_HOST_USER, # Gönderen (Senin sistem mailin)
-                    [settings.EMAIL_HOST_USER], # Alıcı (Yine sen - kendine mail atıyorsun)
+                    f"UniSkill Contact: {subject}", 
+                    full_message, 
+                    settings.EMAIL_HOST_USER, 
+                    [settings.EMAIL_HOST_USER], 
                     fail_silently=False,
                 )
                 messages.success(request, "Your message has been sent successfully! We will get back to you soon.")
@@ -735,3 +702,82 @@ def contact_us(request):
         form = ContactForm()
 
     return render(request, 'core/contact.html', {'form': form})
+
+# ---------------------------------------------------------
+# 6. BLOG & COMMUNITY SYSTEM VIEWS (YENİ EKLENEN)
+# ---------------------------------------------------------
+
+def blog_list(request):
+    # En yeniden eskiye doğru sırala
+    posts = BlogPost.objects.all().order_by('-created_at')
+    return render(request, 'core/blog_list.html', {'posts': posts})
+
+@login_required
+def blog_detail(request, slug):
+    post = get_object_or_404(BlogPost, slug=slug)
+    
+    # --- GÜNCELLENEN KISIM: YORUMLARI PUANA GÖRE SIRALA ---
+    # Like sayısını hesapla ve ona göre (azalan) sırala
+    comments = post.comments.annotate(
+        score=Count('likes') - Count('dislikes')
+    ).order_by('-score', '-created_at')
+    # ------------------------------------------------------
+    
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            messages.success(request, "Comment added successfully!")
+            return redirect('blog_detail', slug=post.slug)
+    else:
+        form = CommentForm()
+
+    return render(request, 'core/blog_detail.html', {
+        'post': post,
+        'comments': comments,
+        'form': form
+    })
+
+# --- YENİ EKLENEN: YORUM OYLAMA FONKSİYONU ---
+@login_required
+def vote_comment(request, comment_id, vote_type):
+    comment = get_object_or_404(Comment, id=comment_id)
+    user = request.user
+
+    if vote_type == 'like':
+        if user in comment.dislikes.all():
+            comment.dislikes.remove(user) # Dislike varsa kaldır
+        
+        if user in comment.likes.all():
+            comment.likes.remove(user) # Zaten like atmışsa geri al
+        else:
+            comment.likes.add(user) # Like at
+
+    elif vote_type == 'dislike':
+        if user in comment.likes.all():
+            comment.likes.remove(user) # Like varsa kaldır
+        
+        if user in comment.dislikes.all():
+            comment.dislikes.remove(user) # Zaten dislike atmışsa geri al
+        else:
+            comment.dislikes.add(user) # Dislike at
+            
+    return redirect('blog_detail', slug=comment.post.slug)
+
+@login_required
+def blog_create(request):
+    if request.method == 'POST':
+        form = BlogPostForm(request.POST, request.FILES)
+        if form.is_valid():
+            blog_post = form.save(commit=False)
+            blog_post.author = request.user
+            blog_post.save()
+            messages.success(request, "Your article has been published!")
+            return redirect('blog_list')
+    else:
+        form = BlogPostForm()
+    
+    return render(request, 'core/blog_form.html', {'form': form})

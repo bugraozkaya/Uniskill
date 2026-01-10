@@ -1,0 +1,80 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white p-4 border-0">
+                    <h4 class="mb-0 fw-bold"><i class="fas fa-pen-nib me-2"></i> Write an Article</h4>
+                    <p class="mb-0 small opacity-75">Share your knowledge with the UniSkill community.</p>
+                </div>
+                
+                <div class="card-body p-5">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                            <div class="alert alert-danger rounded-3">
+                                <ul class="mb-0 small">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small text-uppercase">Title</label>
+                            {{ form.title }}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small text-uppercase">Cover Image</label>
+                            <div class="p-4 bg-light rounded-3 border border-dashed text-center position-relative hover-bg-gray">
+                                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                <p class="small text-muted mb-2">Drag & drop or click to upload</p>
+                                {{ form.image }}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-muted small text-uppercase">Content</label>
+                            {{ form.content }}
+                            <div class="form-text text-muted">You can use simple text. Markdown is not supported yet.</div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
+                            <a href="{% url 'blog_list' %}" class="btn btn-light rounded-pill px-4 fw-bold text-muted">Cancel</a>
+                            <button type="submit" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm">
+                                Publish Article <i class="fas fa-paper-plane ms-2"></i>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Dosya yükleme inputunu güzelleştirme */
+    input[type="file"] {
+        opacity: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+    .hover-bg-gray:hover {
+        background-color: #e9ecef !important;
+    }
+</style>
+{% endblock %}
