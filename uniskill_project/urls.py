@@ -4,6 +4,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 # 'render' fonksiyonu gerekli
 from django.shortcuts import redirect, render 
+from django.contrib.auth import views as auth_views # <-- YENİ EKLENEN IMPORT
+
 from core import views
 
 # View fonksiyonlarını import ediyoruz
@@ -17,7 +19,7 @@ from core.views import (
     meeting_room, cancel_session,
     public_profile, edit_profile,
     mark_notification_as_read,
-    activate # <-- YENİ EKLENEN: Aktivasyon fonksiyonunu import ettik
+    activate 
 )
 
 urlpatterns = [
@@ -37,10 +39,30 @@ urlpatterns = [
     path('register/', register, name='register'),
     path('logout/', logout_view, name='logout'),
     
-    # --- YENİ EKLENEN: E-POSTA AKTİVASYON YOLU ---
-    # Bu link kullanıcının mailine gidecek
+    # E-POSTA AKTİVASYON YOLU
     path('activate/<uidb64>/<token>/', activate, name='activate'),
-    # ---------------------------------------------
+
+    # --- ŞİFRE SIFIRLAMA YOLLARI (YENİ EKLENEN KISIM) ---
+    # 1. Şifre sıfırlama isteği (Mail girilen sayfa)
+    path('reset_password/', 
+         auth_views.PasswordResetView.as_view(template_name="core/password_reset.html"), 
+         name="reset_password"),
+
+    # 2. Mail gönderildi mesajı
+    path('reset_password_sent/', 
+         auth_views.PasswordResetDoneView.as_view(template_name="core/password_reset_sent.html"), 
+         name="password_reset_done"),
+
+    # 3. Yeni şifre belirleme sayfası (Maildeki link buraya gelir)
+    path('reset/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(template_name="core/password_reset_form.html"), 
+         name="password_reset_confirm"),
+
+    # 4. İşlem tamamlandı mesajı
+    path('reset_password_complete/', 
+         auth_views.PasswordResetCompleteView.as_view(template_name="core/password_reset_done.html"), 
+         name="password_reset_complete"),
+    # ----------------------------------------------------
 
     # Yetenek İşlemleri
     path('add-skill/', add_skill, name='add_skill'),
