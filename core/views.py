@@ -6,12 +6,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
-# Count, Sum, Avg zaten vardı, Count'u kullandığımızdan emin olalım
 from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
 from django.core.cache import cache
 from django.utils.dateparse import parse_datetime
 from django.conf import settings 
+# --- YENİ EKLENEN: JSON CEVABI İÇİN ---
+from django.http import JsonResponse 
+# --------------------------------------
 
 # --- YENİ IMPORTLAR (MAİL VE AKTİVASYON İÇİN) ---
 from django.core.mail import send_mail, EmailMessage
@@ -29,8 +31,8 @@ from .models import (
     Session, 
     Review, 
     Message, 
-    Profile,
-    Notification,
+    Profile, 
+    Notification, 
     CATEGORY_CHOICES,
     BlogPost, Comment 
 )
@@ -704,11 +706,10 @@ def contact_us(request):
     return render(request, 'core/contact.html', {'form': form})
 
 # ---------------------------------------------------------
-# 6. BLOG & COMMUNITY SYSTEM VIEWS (YENİ EKLENEN)
+# 6. BLOG & COMMUNITY SYSTEM VIEWS
 # ---------------------------------------------------------
 
 def blog_list(request):
-    # En yeniden eskiye doğru sırala
     posts = BlogPost.objects.all().order_by('-created_at')
     return render(request, 'core/blog_list.html', {'posts': posts})
 
@@ -716,12 +717,10 @@ def blog_list(request):
 def blog_detail(request, slug):
     post = get_object_or_404(BlogPost, slug=slug)
     
-    # --- GÜNCELLENEN KISIM: YORUMLARI PUANA GÖRE SIRALA ---
-    # Like sayısını hesapla ve ona göre (azalan) sırala
+    # Yorumları sırala: (Like - Dislike) puanına göre
     comments = post.comments.annotate(
         score=Count('likes') - Count('dislikes')
     ).order_by('-score', '-created_at')
-    # ------------------------------------------------------
     
     if request.method == 'POST':
         form = CommentForm(request.POST)
@@ -741,31 +740,44 @@ def blog_detail(request, slug):
         'form': form
     })
 
-# --- YENİ EKLENEN: YORUM OYLAMA FONKSİYONU ---
+# --- GÜNCELLENEN: AJAX İÇİN JSON DÖNDÜREN VOTE FONKSİYONU ---
 @login_required
 def vote_comment(request, comment_id, vote_type):
     comment = get_object_or_404(Comment, id=comment_id)
     user = request.user
+    
+    # Kullanıcının son durumu (frontend için)
+    user_action = 'none' 
 
     if vote_type == 'like':
         if user in comment.dislikes.all():
-            comment.dislikes.remove(user) # Dislike varsa kaldır
+            comment.dislikes.remove(user)
         
         if user in comment.likes.all():
-            comment.likes.remove(user) # Zaten like atmışsa geri al
+            comment.likes.remove(user)
+            user_action = 'none'
         else:
-            comment.likes.add(user) # Like at
+            comment.likes.add(user)
+            user_action = 'liked'
 
     elif vote_type == 'dislike':
         if user in comment.likes.all():
-            comment.likes.remove(user) # Like varsa kaldır
+            comment.likes.remove(user)
         
         if user in comment.dislikes.all():
-            comment.dislikes.remove(user) # Zaten dislike atmışsa geri al
+            comment.dislikes.remove(user)
+            user_action = 'none'
         else:
-            comment.dislikes.add(user) # Dislike at
+            comment.dislikes.add(user)
+            user_action = 'disliked'
             
-    return redirect('blog_detail', slug=comment.post.slug)
+    # JSON döndür (Sayfa yenilenmez)
+    return JsonResponse({
+        'likes_count': comment.likes.count(),
+        'dislikes_count': comment.dislikes.count(),
+        'user_action': user_action
+    })
+# -------------------------------------------------------------
 
 @login_required
 def blog_create(request):

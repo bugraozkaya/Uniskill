@@ -93,18 +93,22 @@
 
                                     <div class="d-flex align-items-center gap-3 border-top pt-2">
                                         
-                                        <a href="{% url 'vote_comment' comment.id 'like' %}" class="text-decoration-none d-flex align-items-center gap-1 transition-hover {% if request.user in comment.likes.all %}text-primary fw-bold{% else %}text-muted{% endif %}">
+                                        <a href="javascript:void(0);" onclick="voteComment({{ comment.id }}, 'like')" 
+                                           id="like-btn-{{ comment.id }}"
+                                           class="text-decoration-none d-flex align-items-center gap-1 transition-hover {% if request.user in comment.likes.all %}text-primary fw-bold{% else %}text-muted{% endif %}">
                                             <i class="fas fa-thumbs-up"></i>
-                                            <span style="font-size: 0.85rem;">{{ comment.likes.count }}</span>
+                                            <span id="like-count-{{ comment.id }}" style="font-size: 0.85rem;">{{ comment.likes.count }}</span>
                                         </a>
 
                                         <span class="text-muted opacity-25">|</span>
 
-                                        <a href="{% url 'vote_comment' comment.id 'dislike' %}" class="text-decoration-none d-flex align-items-center gap-1 transition-hover {% if request.user in comment.dislikes.all %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                        <a href="javascript:void(0);" onclick="voteComment({{ comment.id }}, 'dislike')" 
+                                           id="dislike-btn-{{ comment.id }}"
+                                           class="text-decoration-none d-flex align-items-center gap-1 transition-hover {% if request.user in comment.dislikes.all %}text-danger fw-bold{% else %}text-muted{% endif %}">
                                             <i class="fas fa-thumbs-down"></i>
-                                            {% if comment.dislikes.count > 0 %}
-                                                <span style="font-size: 0.85rem;">{{ comment.dislikes.count }}</span>
-                                            {% endif %}
+                                            <span id="dislike-count-{{ comment.id }}" style="font-size: 0.85rem;">
+                                                {% if comment.dislikes.count > 0 %}{{ comment.dislikes.count }}{% endif %}
+                                            </span>
                                         </a>
 
                                     </div>
@@ -125,12 +129,46 @@
 </div>
 
 <style>
-    .article-content p {
-        margin-bottom: 1.5rem;
-    }
-    .transition-hover:hover {
-        transform: scale(1.1);
-        transition: transform 0.2s;
-    }
+    .article-content p { margin-bottom: 1.5rem; }
+    .transition-hover:hover { transform: scale(1.1); transition: transform 0.2s; }
 </style>
+
+<script>
+    function voteComment(commentId, voteType) {
+        // Sunucuya istek at
+        fetch(`/comment/${commentId}/vote/${voteType}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // 1. Sayıları Güncelle
+            document.getElementById(`like-count-${commentId}`).innerText = data.likes_count;
+            // Dislike 0 ise boş göster
+            document.getElementById(`dislike-count-${commentId}`).innerText = data.dislikes_count > 0 ? data.dislikes_count : '';
+
+            // 2. Buton Renklerini Güncelle
+            const likeBtn = document.getElementById(`like-btn-${commentId}`);
+            const dislikeBtn = document.getElementById(`dislike-btn-${commentId}`);
+            
+            // Ortak sınıf (Gri renk)
+            const baseClass = "text-decoration-none d-flex align-items-center gap-1 transition-hover";
+
+            // Önce ikisini de gri yap
+            likeBtn.className = baseClass + " text-muted";
+            dislikeBtn.className = baseClass + " text-muted";
+
+            // Duruma göre renklendir
+            if (data.user_action === 'liked') {
+                likeBtn.className = baseClass + " text-primary fw-bold"; // Mavi
+            } else if (data.user_action === 'disliked') {
+                dislikeBtn.className = baseClass + " text-danger fw-bold"; // Kırmızı
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
+
 {% endblock %}
