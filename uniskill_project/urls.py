@@ -21,9 +21,11 @@ from core.views import (
     mark_notification_as_read,
     activate,
     contact_us,
-    # --- YENİ EKLENEN BLOG VIEWLARI ---
+    # --- BLOG VIEWLARI ---
     blog_list, blog_detail, blog_create,
-    vote_comment # <-- YENİ EKLENEN: Oy verme fonksiyonu
+    vote_comment, 
+    # --- YENİ EKLENEN: SİLME VE DÜZENLEME ---
+    delete_comment, edit_comment
 )
 
 urlpatterns = [
@@ -103,8 +105,10 @@ urlpatterns = [
     path('community/write/', blog_create, name='blog_create'),
     path('community/<slug:slug>/', blog_detail, name='blog_detail'),
     
-    # --- YENİ EKLENEN: YORUM OYLAMA YOLU ---
+    # --- YORUM İŞLEMLERİ (OYLAMA / SİLME / DÜZENLEME) ---
     path('comment/<int:comment_id>/vote/<str:vote_type>/', vote_comment, name='vote_comment'),
+    path('comment/delete/<int:comment_id>/', delete_comment, name='delete_comment'), # <-- YENİ
+    path('comment/edit/<int:comment_id>/', edit_comment, name='edit_comment'),     # <-- YENİ
     # ---------------------------------------
 
     # --- GEÇİCİ 404 TEST LİNKİ ---

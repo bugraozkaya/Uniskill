@@ -1,230 +1,307 @@
-from django.db import models
-from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
-from django.db.models import Sum
+{% extends 'core/base.html' %}
 
-# ---------------------------------------------------------
-# 1. GLOBAL CHOICES (Used in multiple models)
-# ---------------------------------------------------------
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <a href="{% url 'blog_list' %}" class="text-decoration-none text-muted mb-4 d-inline-block fw-bold small">
+                <i class="fas fa-arrow-left me-2"></i> Back to Community
+            </a>
 
-CATEGORY_CHOICES = [
-    ('engineering', 'Engineering & Tech'),
-    ('software', 'Software & Coding'),
-    ('language', 'Foreign Languages'),
-    ('art', 'Art & Design'),
-    ('music', 'Music & Instruments'),
-    ('math', 'Mathematics & Science'),
-    ('personal', 'Personal Development'),
-    ('other', 'Other'),
-]
+            <h1 class="display-5 fw-bold text-dark mb-3">{{ post.title }}</h1>
+            
+            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-4">
+                <div class="d-flex align-items-center">
+                    <a href="{% url 'public_profile' post.author.id %}" class="text-decoration-none">
+                        <img src="{{ post.author.profile.avatar.url }}" class="rounded-circle border" style="width: 50px; height: 50px; object-fit: cover;">
+                    </a>
+                    <div class="ms-3 lh-1">
+                        <span class="d-block fw-bold text-dark">{{ post.author.get_full_name }}</span>
+                        <small class="text-muted">{{ post.created_at|date:"F d, Y" }}</small>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 text-muted">
+                    <span><i class="far fa-eye me-1"></i> 1.2k</span> 
+                    <span><i class="far fa-comment me-1"></i> {{ comments.count }}</span>
+                    <span><i class="far fa-heart me-1"></i> {{ post.likes.count }}</span>
+                </div>
+            </div>
 
-# --- BLOG KATEGORİLERİ ---
-BLOG_CATEGORY_CHOICES = [
-    ('general', 'General Discussion'),
-    ('campus', 'Campus Life & Events'),
-    ('tech', 'Technology & Coding'),
-    ('study', 'Study Tips & Resources'),
-    ('career', 'Career & Internship'),
-    ('social', 'Social & Fun'),
-]
-# -------------------------
+            {% if post.image %}
+                <div class="mb-5 rounded-4 overflow-hidden shadow-sm">
+                    <img src="{{ post.image.url }}" class="w-100" style="object-fit: cover; max-height: 400px;">
+                </div>
+            {% endif %}
 
-# ---------------------------------------------------------
-# 2. PROFILE MODEL (Extends User with Balance & Status)
-# ---------------------------------------------------------
+            <div class="article-content fs-5 lh-lg text-secondary mb-5">
+                {{ post.content|linebreaks }}
+            </div>
 
-class Profile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+            <div class="bg-light p-4 rounded-4 mb-5" id="comments">
+                <h4 class="fw-bold mb-4">Comments</h4>
+                
+                {% if user.is_authenticated %}
+                    <form method="POST" class="mb-5 position-relative">
+                        {% csrf_token %}
+                        <div class="d-flex align-items-start gap-3">
+                            <img src="{{ user.profile.avatar.url }}" class="rounded-circle shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+                            <div class="flex-grow-1">
+                                {{ form.body }}
+                                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold mt-2 shadow-sm">
+                                    Post Comment
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning border-0 shadow-sm mb-4">
+                        Please <a href="{% url 'login' %}" class="fw-bold text-dark">login</a> to leave a comment.
+                    </div>
+                {% endif %}
+
+                <div class="d-flex flex-column gap-4">
+                    {% for comment in comments %}
+                        
+                        <div class="comment-block" id="comment-block-{{ comment.id }}">
+                            
+                            <div class="d-flex gap-3">
+                                <a href="{% url 'public_profile' comment.author.id %}">
+                                    <img src="{{ comment.author.profile.avatar.url }}" class="rounded-circle border bg-white shadow-sm" style="width: 48px; height: 48px; object-fit: cover;">
+                                </a>
+                                <div class="flex-grow-1">
+                                    <div class="bg-white p-3 rounded-4 shadow-sm border border-light position-relative group-hover-container">
+                                        
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <div>
+                                                <h6 class="fw-bold mb-0 text-dark">
+                                                    <a href="{% url 'public_profile' comment.author.id %}" class="text-decoration-none text-dark">{{ comment.author.get_full_name }}</a>
+                                                </h6>
+                                                <small class="text-muted" style="font-size: 0.75rem;">{{ comment.created_at|timesince }} ago</small>
+                                            </div>
+
+                                            {% if request.user == comment.author %}
+                                                <div class="dropdown">
+                                                    <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-ellipsis-v fa-sm"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
+                                                        <li><a class="dropdown-item small" href="javascript:void(0);" onclick="toggleEditMode({{ comment.id }})"><i class="fas fa-pen me-2 text-warning"></i>Edit</a></li>
+                                                        <li><a class="dropdown-item small text-danger" href="javascript:void(0);" onclick="deleteComment({{ comment.id }})"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                                                    </ul>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div id="comment-content-{{ comment.id }}">
+                                            <p class="text-secondary mb-2">{{ comment.body }}</p>
+                                        </div>
+
+                                        <div id="edit-form-{{ comment.id }}" class="d-none mb-2">
+                                            <form action="{% url 'edit_comment' comment.id %}" method="POST">
+                                                {% csrf_token %}
+                                                <textarea name="body" class="form-control form-control-sm mb-2" rows="2">{{ comment.body }}</textarea>
+                                                <div class="d-flex justify-content-end gap-2">
+                                                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3" onclick="toggleEditMode({{ comment.id }})">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Save</button>
+                                                </div>
+                                            </form>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-3 border-top pt-2 mt-2">
+                                            <a href="javascript:void(0);" onclick="voteComment({{ comment.id }}, 'like')" id="like-btn-{{ comment.id }}" class="text-decoration-none d-flex align-items-center gap-1 transition-hover {% if request.user in comment.likes.all %}text-primary fw-bold{% else %}text-muted{% endif %}">
+                                                <i class="fas fa-thumbs-up"></i> <span id="like-count-{{ comment.id }}">{{ comment.likes.count }}</span>
+                                            </a>
+                                            <a href="javascript:void(0);" onclick="voteComment({{ comment.id }}, 'dislike')" id="dislike-btn-{{ comment.id }}" class="text-decoration-none d-flex align-items-center gap-1 transition-hover {% if request.user in comment.dislikes.all %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                                <i class="fas fa-thumbs-down"></i> <span id="dislike-count-{{ comment.id }}">{% if comment.dislikes.count > 0 %}{{ comment.dislikes.count }}{% endif %}</span>
+                                            </a>
+                                            <span class="text-muted opacity-25">|</span>
+                                            <a href="javascript:void(0);" onclick="toggleReplyForm({{ comment.id }})" class="text-decoration-none text-muted small fw-bold hover-text-primary">
+                                                <i class="fas fa-reply me-1"></i> Reply
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div id="reply-form-{{ comment.id }}" class="mt-3 d-none reply-form-container ms-2">
+                                        <form method="POST" class="d-flex gap-2 align-items-start">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                                            <img src="{{ user.profile.avatar.url }}" class="rounded-circle shadow-sm" style="width: 32px; height: 32px; object-fit: cover;">
+                                            <div class="flex-grow-1">
+                                                <textarea name="body" class="form-control form-control-sm mb-2" rows="2" placeholder="Write a reply..."></textarea>
+                                                <div class="text-end">
+                                                    <button type="submit" class="btn btn-primary btn-sm px-3 rounded-pill fw-bold">Post Reply</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    {% if comment.replies.all %}
+                                        <div class="replies-wrapper mt-3 ps-3">
+                                            {% for reply in comment.replies.all %}
+                                                <div class="d-flex gap-3 mb-3 position-relative" style="margin-left: 3rem;" id="comment-block-{{ reply.id }}">
+                                                    
+                                                    <div class="position-absolute text-muted opacity-25" style="left: -20px; top: 12px;">
+                                                        <i class="fas fa-level-up-alt fa-rotate-90"></i>
+                                                    </div>
+
+                                                    <a href="{% url 'public_profile' reply.author.id %}" class="z-1">
+                                                        <img src="{{ reply.author.profile.avatar.url }}" class="rounded-circle border bg-white" style="width: 36px; height: 36px; object-fit: cover;">
+                                                    </a>
+                                                    
+                                                    <div class="flex-grow-1">
+                                                        <div class="bg-body-secondary bg-opacity-50 p-3 rounded-4 border border-light-subtle">
+                                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                                <div>
+                                                                    <h6 class="fw-bold mb-0 text-dark small">
+                                                                        <a href="{% url 'public_profile' reply.author.id %}" class="text-decoration-none text-dark">{{ reply.author.get_full_name }}</a>
+                                                                    </h6>
+                                                                    <small class="text-muted" style="font-size: 0.7rem;">{{ reply.created_at|timesince }} ago</small>
+                                                                </div>
+
+                                                                {% if request.user == reply.author %}
+                                                                    <div class="dropdown">
+                                                                        <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                            <i class="fas fa-ellipsis-v fa-sm"></i>
+                                                                        </button>
+                                                                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
+                                                                            <li><a class="dropdown-item small" href="javascript:void(0);" onclick="toggleEditMode({{ reply.id }})"><i class="fas fa-pen me-2 text-warning"></i>Edit</a></li>
+                                                                            <li><a class="dropdown-item small text-danger" href="javascript:void(0);" onclick="deleteComment({{ reply.id }})"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                                                                        </ul>
+                                                                    </div>
+                                                                {% endif %}
+                                                            </div>
+
+                                                            <div id="comment-content-{{ reply.id }}">
+                                                                <p class="text-dark mb-1 small">{{ reply.body }}</p>
+                                                            </div>
+
+                                                            <div id="edit-form-{{ reply.id }}" class="d-none mb-1">
+                                                                <form action="{% url 'edit_comment' reply.id %}" method="POST">
+                                                                    {% csrf_token %}
+                                                                    <textarea name="body" class="form-control form-control-sm mb-2" rows="2">{{ reply.body }}</textarea>
+                                                                    <div class="d-flex justify-content-end gap-2">
+                                                                        <button type="button" class="btn btn-light btn-sm rounded-pill px-3" onclick="toggleEditMode({{ reply.id }})">Cancel</button>
+                                                                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Save</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                            
+                                                            <div class="d-flex align-items-center gap-3 pt-1">
+                                                                <a href="javascript:void(0);" onclick="voteComment({{ reply.id }}, 'like')" id="like-btn-{{ reply.id }}" class="text-decoration-none d-flex align-items-center gap-1 text-muted" style="font-size: 0.75rem;">
+                                                                    <i class="fas fa-thumbs-up"></i> <span id="like-count-{{ reply.id }}">{{ reply.likes.count }}</span>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4 text-muted opacity-50">
+                            <i class="far fa-comments fa-2x mb-2"></i>
+                            <p>No comments yet. Be the first!</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .article-content p { margin-bottom: 1.5rem; }
+    .transition-hover:hover { transform: scale(1.05); transition: transform 0.2s; }
+    .hover-text-primary:hover { color: var(--bs-primary) !important; }
+    .reply-form-container { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     
-    # --- Profil Fotoğrafı ---
-    avatar = models.ImageField(default='default.png', upload_to='profile_pics/', verbose_name="Profile Picture")
-    
-    balance = models.IntegerField(default=3, help_text="Balance in hours")
-    department = models.CharField(max_length=100, blank=True, null=True)
-    
-    STATUS_CHOICES = [
-        ('pending', 'Pending Approval'),
-        ('active', 'Active'),
-        ('suspended', 'Suspended')
-    ]
-    status = models.CharField(max_length=20, default='pending', choices=STATUS_CHOICES)
-    
-    # Referral System Fields
-    referral_code = models.CharField(max_length=10, blank=True, null=True, unique=True)
-    used_referral = models.CharField(max_length=10, blank=True, null=True)
-    is_rewarded = models.BooleanField(default=False, verbose_name="Referral Reward Given?")
+    /* Dropdown menüsünün temiz görünmesi için */
+    .dropdown-item:active { background-color: var(--bs-primary); }
+</style>
 
-    # --- RÜTBE HESAPLAMA SİSTEMİ ---
-    @property
-    def get_rank_info(self):
-        # Kullanıcının verdiği (tamamlanmış) toplam ders saati
-        total_hours = self.user.given_sessions.filter(status='completed').aggregate(Sum('duration'))['duration__sum'] or 0
+<script>
+    // --- YORUM SİLME FONKSİYONU ---
+    function deleteComment(commentId) {
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+
+        fetch(`/comment/delete/${commentId}/`, {
+            method: 'GET',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const block = document.getElementById(`comment-block-${commentId}`);
+                // Efektli silinme
+                block.style.transition = 'all 0.5s ease';
+                block.style.opacity = '0';
+                block.style.transform = 'scale(0.9)';
+                setTimeout(() => block.remove(), 500);
+            } else {
+                alert('Error deleting comment.');
+            }
+        });
+    }
+
+    // --- DÜZENLEME MODUNU AÇ/KAPA ---
+    function toggleEditMode(commentId) {
+        const contentDiv = document.getElementById(`comment-content-${commentId}`);
+        const editForm = document.getElementById(`edit-form-${commentId}`);
         
-        # Rütbe Mantığı
-        if total_hours >= 50:
-            return {'title': 'Master Sensei', 'icon': 'fas fa-crown', 'color': 'text-warning'} # Altın
-        elif total_hours >= 20:
-            return {'title': 'Senior Mentor', 'icon': 'fas fa-medal', 'color': 'text-secondary'} # Gümüş
-        elif total_hours >= 5:
-            return {'title': 'Junior Tutor', 'icon': 'fas fa-award', 'color': 'text-danger'} # Bronz
-        else:
-            return {'title': 'Newbie', 'icon': 'fas fa-seedling', 'color': 'text-success'} # Yeşil (Başlangıç)
-    # ---------------------------------------------
+        if (editForm.classList.contains('d-none')) {
+            contentDiv.classList.add('d-none');
+            editForm.classList.remove('d-none');
+        } else {
+            contentDiv.classList.remove('d-none');
+            editForm.classList.add('d-none');
+        }
+    }
 
-    def __str__(self):
-        return str(self.user)
+    // --- MEVCUT FONKSİYONLAR (VOTE & REPLY) ---
+    function voteComment(commentId, voteType) {
+        fetch(`/comment/${commentId}/vote/${voteType}/`, {
+            method: 'GET',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById(`like-count-${commentId}`).innerText = data.likes_count;
+            const dislikeCounter = document.getElementById(`dislike-count-${commentId}`);
+            if (dislikeCounter) {
+                dislikeCounter.innerText = data.dislikes_count > 0 ? data.dislikes_count : '';
+            }
 
-# ---------------------------------------------------------
-# 3. SKILL INVENTORY
-# ---------------------------------------------------------
+            const likeBtn = document.getElementById(`like-btn-${commentId}`);
+            const dislikeBtn = document.getElementById(`dislike-btn-${commentId}`);
+            
+            const baseClass = "text-decoration-none d-flex align-items-center gap-1 transition-hover";
+            if (likeBtn) likeBtn.className = baseClass + " text-muted";
+            if (dislikeBtn) dislikeBtn.className = baseClass + " text-muted";
 
-class Skill(models.Model):
-    name = models.CharField(max_length=100)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other', verbose_name="Category")
-    description = models.TextField(blank=True)
+            if (data.user_action === 'liked' && likeBtn) {
+                likeBtn.className = baseClass + " text-primary fw-bold";
+            } else if (data.user_action === 'disliked' && dislikeBtn) {
+                dislikeBtn.className = baseClass + " text-danger fw-bold";
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 
-    def __str__(self):
-        return f"{self.name} ({self.get_category_display()})"
+    function toggleReplyForm(commentId) {
+        const formDiv = document.getElementById(`reply-form-${commentId}`);
+        if (formDiv.classList.contains('d-none')) {
+            formDiv.classList.remove('d-none');
+            formDiv.querySelector('textarea').focus();
+        } else {
+            formDiv.classList.add('d-none');
+        }
+    }
+</script>
 
-# ---------------------------------------------------------
-# 4. USER SKILLS (Ads Posted by Users)
-# ---------------------------------------------------------
-
-class UserSkill(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
-    description = models.TextField(verbose_name="Description", blank=True)
-    certificate = models.FileField(upload_to='certificates/', verbose_name="Certificate/Document", null=True, blank=True)
-    is_approved = models.BooleanField(default=False, verbose_name="Is Approved?")
-    
-    LOCATION_CHOICES = [
-        ('online', 'Online'),
-        ('campus', 'On Campus'),
-        ('library', 'Library'),
-        ('other', 'Other'),
-    ]
-    location = models.CharField(max_length=20, choices=LOCATION_CHOICES, default='online')
-
-    def __str__(self):
-        return f"{self.user} - {self.skill.name}"
-
-# ---------------------------------------------------------
-# 5. SESSION (Classes/Meetings)
-# ---------------------------------------------------------
-
-class Session(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Waiting for Admin'),
-        ('pending_tutor', 'Waiting for Tutor'),
-        ('approved', 'Approved / Active'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-    ]
-
-    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='joined_sessions')
-    tutor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='given_sessions')
-    skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
-    
-    date = models.DateTimeField()
-    duration = models.PositiveIntegerField(help_text="Duration in hours")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    @property
-    def is_expired(self):
-        if not self.date: return False
-        return timezone.now() > (self.date + timedelta(hours=self.duration))
-
-    def __str__(self):
-        return f"{self.student} -> {self.tutor} ({self.skill.name})"
-
-# ---------------------------------------------------------
-# 6. REVIEWS & MESSAGES & NOTIFICATIONS
-# ---------------------------------------------------------
-
-class Review(models.Model):
-    session = models.OneToOneField(Session, on_delete=models.CASCADE, related_name='review')
-    rating = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)])
-    comment = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Rating: {self.rating} for Session {self.session.id}"
-
-class Message(models.Model):
-    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
-    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
-    body = models.TextField(blank=True, null=True) # Metin boş olabilir
-    # --- Resim Alanı ---
-    image = models.ImageField(upload_to='message_images/', blank=True, null=True)
-    # -------------------
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"From {self.sender} to {self.recipient}"
-    
-class Notification(models.Model):
-    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
-    message = models.CharField(max_length=255)
-    link = models.CharField(max_length=200, blank=True, null=True)
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"Notification for {self.recipient}: {self.message}"
-
-# ---------------------------------------------------------
-# 7. BLOG & COMMUNITY SYSTEM
-# ---------------------------------------------------------
-
-class BlogPost(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
-    slug = models.SlugField(unique=True, blank=True)
-    
-    # --- KATEGORİ ---
-    category = models.CharField(max_length=20, choices=BLOG_CATEGORY_CHOICES, default='general')
-    # ----------------
-
-    content = models.TextField()
-    image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='blog_likes', blank=True)
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            from django.utils.text import slugify
-            import uuid
-            self.slug = slugify(self.title) + "-" + str(uuid.uuid4())[:8]
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.title
-
-class Comment(models.Model):
-    post = models.ForeignKey(BlogPost, related_name='comments', on_delete=models.CASCADE)
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    body = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    # --- YENİ EKLENEN: ALT YORUM (REPLY) ALANI ---
-    # parent=None ise bu bir ana yorumdur.
-    # parent dolu ise, o yorumun cevabıdır.
-    parent = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
-    # ---------------------------------------------
-
-    # --- BEĞENİ SİSTEMİ ---
-    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='comment_likes', blank=True)
-    dislikes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='comment_dislikes', blank=True)
-
-    def total_score(self):
-        return self.likes.count() - self.dislikes.count()
-
-    def __str__(self):
-        return f"Comment by {self.author} on {self.post.title}"
+{% endblock %}
