@@ -1,174 +1,230 @@
-{% extends 'core/base.html' %}
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Sum
 
-{% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            
-            <a href="{% url 'blog_list' %}" class="text-decoration-none text-muted mb-4 d-inline-block fw-bold small">
-                <i class="fas fa-arrow-left me-2"></i> Back to Community
-            </a>
+# ---------------------------------------------------------
+# 1. GLOBAL CHOICES (Used in multiple models)
+# ---------------------------------------------------------
 
-            <h1 class="display-5 fw-bold text-dark mb-3">{{ post.title }}</h1>
-            
-            <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-4">
-                <div class="d-flex align-items-center">
-                    <a href="{% url 'public_profile' post.author.id %}" class="text-decoration-none">
-                        <img src="{{ post.author.profile.avatar.url }}" class="rounded-circle border" style="width: 50px; height: 50px; object-fit: cover;">
-                    </a>
-                    <div class="ms-3 lh-1">
-                        <span class="d-block fw-bold text-dark">{{ post.author.get_full_name }}</span>
-                        <small class="text-muted">{{ post.created_at|date:"F d, Y" }}</small>
-                    </div>
-                </div>
-                <div class="d-flex gap-3 text-muted">
-                    <span><i class="far fa-eye me-1"></i> 1.2k</span> <span><i class="far fa-comment me-1"></i> {{ comments.count }}</span>
-                    <span><i class="far fa-heart me-1"></i> {{ post.likes.count }}</span>
-                </div>
-            </div>
+CATEGORY_CHOICES = [
+    ('engineering', 'Engineering & Tech'),
+    ('software', 'Software & Coding'),
+    ('language', 'Foreign Languages'),
+    ('art', 'Art & Design'),
+    ('music', 'Music & Instruments'),
+    ('math', 'Mathematics & Science'),
+    ('personal', 'Personal Development'),
+    ('other', 'Other'),
+]
 
-            {% if post.image %}
-                <div class="mb-5 rounded-4 overflow-hidden shadow-sm">
-                    <img src="{{ post.image.url }}" class="w-100" style="object-fit: cover; max-height: 400px;">
-                </div>
-            {% endif %}
+# --- BLOG KATEGORİLERİ ---
+BLOG_CATEGORY_CHOICES = [
+    ('general', 'General Discussion'),
+    ('campus', 'Campus Life & Events'),
+    ('tech', 'Technology & Coding'),
+    ('study', 'Study Tips & Resources'),
+    ('career', 'Career & Internship'),
+    ('social', 'Social & Fun'),
+]
+# -------------------------
 
-            <div class="article-content fs-5 lh-lg text-secondary mb-5">
-                {{ post.content|linebreaks }}
-            </div>
+# ---------------------------------------------------------
+# 2. PROFILE MODEL (Extends User with Balance & Status)
+# ---------------------------------------------------------
 
-            <div class="d-flex justify-content-between align-items-center border-top border-bottom py-4 mb-5">
-                <div class="d-flex gap-2">
-                    <span class="badge bg-light text-dark border">#UniSkill</span>
-                    <span class="badge bg-light text-dark border">#Community</span>
-                    <span class="badge bg-light text-dark border">#Learning</span>
-                </div>
-                <div>
-                    <small class="fw-bold text-muted me-2 text-uppercase">Share:</small>
-                    <a href="#" class="btn btn-sm btn-light rounded-circle text-primary"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="btn btn-sm btn-light rounded-circle text-primary"><i class="fab fa-linkedin-in"></i></a>
-                    <a href="#" class="btn btn-sm btn-light rounded-circle text-primary"><i class="fab fa-whatsapp"></i></a>
-                </div>
-            </div>
+class Profile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    
+    # --- Profil Fotoğrafı ---
+    avatar = models.ImageField(default='default.png', upload_to='profile_pics/', verbose_name="Profile Picture")
+    
+    balance = models.IntegerField(default=3, help_text="Balance in hours")
+    department = models.CharField(max_length=100, blank=True, null=True)
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('active', 'Active'),
+        ('suspended', 'Suspended')
+    ]
+    status = models.CharField(max_length=20, default='pending', choices=STATUS_CHOICES)
+    
+    # Referral System Fields
+    referral_code = models.CharField(max_length=10, blank=True, null=True, unique=True)
+    used_referral = models.CharField(max_length=10, blank=True, null=True)
+    is_rewarded = models.BooleanField(default=False, verbose_name="Referral Reward Given?")
 
-            <div class="bg-light p-4 rounded-4 mb-5" id="comments">
-                <h4 class="fw-bold mb-4">Comments ({{ comments.count }})</h4>
-                
-                {% if user.is_authenticated %}
-                    <form method="POST" class="mb-5 position-relative">
-                        {% csrf_token %}
-                        <div class="d-flex align-items-start gap-3">
-                            <img src="{{ user.profile.avatar.url }}" class="rounded-circle shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
-                            <div class="flex-grow-1">
-                                {{ form.body }}
-                                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold mt-2 shadow-sm">
-                                    Post Comment
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                {% else %}
-                    <div class="alert alert-warning border-0 shadow-sm mb-4">
-                        Please <a href="{% url 'login' %}" class="fw-bold text-dark">login</a> to leave a comment.
-                    </div>
-                {% endif %}
+    # --- RÜTBE HESAPLAMA SİSTEMİ ---
+    @property
+    def get_rank_info(self):
+        # Kullanıcının verdiği (tamamlanmış) toplam ders saati
+        total_hours = self.user.given_sessions.filter(status='completed').aggregate(Sum('duration'))['duration__sum'] or 0
+        
+        # Rütbe Mantığı
+        if total_hours >= 50:
+            return {'title': 'Master Sensei', 'icon': 'fas fa-crown', 'color': 'text-warning'} # Altın
+        elif total_hours >= 20:
+            return {'title': 'Senior Mentor', 'icon': 'fas fa-medal', 'color': 'text-secondary'} # Gümüş
+        elif total_hours >= 5:
+            return {'title': 'Junior Tutor', 'icon': 'fas fa-award', 'color': 'text-danger'} # Bronz
+        else:
+            return {'title': 'Newbie', 'icon': 'fas fa-seedling', 'color': 'text-success'} # Yeşil (Başlangıç)
+    # ---------------------------------------------
 
-                <div class="d-flex flex-column gap-4">
-                    {% for comment in comments %}
-                        <div class="d-flex gap-3">
-                            <a href="{% url 'public_profile' comment.author.id %}">
-                                <img src="{{ comment.author.profile.avatar.url }}" class="rounded-circle border bg-white" style="width: 45px; height: 45px; object-fit: cover;">
-                            </a>
-                            <div class="flex-grow-1">
-                                <div class="bg-white p-3 rounded-3 shadow-sm border border-light position-relative">
-                                    
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <h6 class="fw-bold mb-0 text-dark">
-                                            <a href="{% url 'public_profile' comment.author.id %}" class="text-decoration-none text-dark">{{ comment.author.get_full_name }}</a>
-                                        </h6>
-                                        <small class="text-muted" style="font-size: 0.75rem;">{{ comment.created_at|timesince }} ago</small>
-                                    </div>
-                                    
-                                    <p class="text-secondary mb-3 small">{{ comment.body }}</p>
+    def __str__(self):
+        return str(self.user)
 
-                                    <div class="d-flex align-items-center gap-3 border-top pt-2">
-                                        
-                                        <a href="javascript:void(0);" onclick="voteComment({{ comment.id }}, 'like')" 
-                                           id="like-btn-{{ comment.id }}"
-                                           class="text-decoration-none d-flex align-items-center gap-1 transition-hover {% if request.user in comment.likes.all %}text-primary fw-bold{% else %}text-muted{% endif %}">
-                                            <i class="fas fa-thumbs-up"></i>
-                                            <span id="like-count-{{ comment.id }}" style="font-size: 0.85rem;">{{ comment.likes.count }}</span>
-                                        </a>
+# ---------------------------------------------------------
+# 3. SKILL INVENTORY
+# ---------------------------------------------------------
 
-                                        <span class="text-muted opacity-25">|</span>
+class Skill(models.Model):
+    name = models.CharField(max_length=100)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other', verbose_name="Category")
+    description = models.TextField(blank=True)
 
-                                        <a href="javascript:void(0);" onclick="voteComment({{ comment.id }}, 'dislike')" 
-                                           id="dislike-btn-{{ comment.id }}"
-                                           class="text-decoration-none d-flex align-items-center gap-1 transition-hover {% if request.user in comment.dislikes.all %}text-danger fw-bold{% else %}text-muted{% endif %}">
-                                            <i class="fas fa-thumbs-down"></i>
-                                            <span id="dislike-count-{{ comment.id }}" style="font-size: 0.85rem;">
-                                                {% if comment.dislikes.count > 0 %}{{ comment.dislikes.count }}{% endif %}
-                                            </span>
-                                        </a>
+    def __str__(self):
+        return f"{self.name} ({self.get_category_display()})"
 
-                                    </div>
-                                    </div>
-                            </div>
-                        </div>
-                    {% empty %}
-                        <div class="text-center py-4 text-muted opacity-50">
-                            <i class="far fa-comments fa-2x mb-2"></i>
-                            <p>No comments yet. Be the first!</p>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
+# ---------------------------------------------------------
+# 4. USER SKILLS (Ads Posted by Users)
+# ---------------------------------------------------------
 
-        </div>
-    </div>
-</div>
+class UserSkill(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
+    description = models.TextField(verbose_name="Description", blank=True)
+    certificate = models.FileField(upload_to='certificates/', verbose_name="Certificate/Document", null=True, blank=True)
+    is_approved = models.BooleanField(default=False, verbose_name="Is Approved?")
+    
+    LOCATION_CHOICES = [
+        ('online', 'Online'),
+        ('campus', 'On Campus'),
+        ('library', 'Library'),
+        ('other', 'Other'),
+    ]
+    location = models.CharField(max_length=20, choices=LOCATION_CHOICES, default='online')
 
-<style>
-    .article-content p { margin-bottom: 1.5rem; }
-    .transition-hover:hover { transform: scale(1.1); transition: transform 0.2s; }
-</style>
+    def __str__(self):
+        return f"{self.user} - {self.skill.name}"
 
-<script>
-    function voteComment(commentId, voteType) {
-        // Sunucuya istek at
-        fetch(`/comment/${commentId}/vote/${voteType}/`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            // 1. Sayıları Güncelle
-            document.getElementById(`like-count-${commentId}`).innerText = data.likes_count;
-            // Dislike 0 ise boş göster
-            document.getElementById(`dislike-count-${commentId}`).innerText = data.dislikes_count > 0 ? data.dislikes_count : '';
+# ---------------------------------------------------------
+# 5. SESSION (Classes/Meetings)
+# ---------------------------------------------------------
 
-            // 2. Buton Renklerini Güncelle
-            const likeBtn = document.getElementById(`like-btn-${commentId}`);
-            const dislikeBtn = document.getElementById(`dislike-btn-${commentId}`);
-            
-            // Ortak sınıf (Gri renk)
-            const baseClass = "text-decoration-none d-flex align-items-center gap-1 transition-hover";
+class Session(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Waiting for Admin'),
+        ('pending_tutor', 'Waiting for Tutor'),
+        ('approved', 'Approved / Active'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
 
-            // Önce ikisini de gri yap
-            likeBtn.className = baseClass + " text-muted";
-            dislikeBtn.className = baseClass + " text-muted";
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='joined_sessions')
+    tutor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='given_sessions')
+    skill = models.ForeignKey(Skill, on_delete=models.CASCADE)
+    
+    date = models.DateTimeField()
+    duration = models.PositiveIntegerField(help_text="Duration in hours")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
 
-            // Duruma göre renklendir
-            if (data.user_action === 'liked') {
-                likeBtn.className = baseClass + " text-primary fw-bold"; // Mavi
-            } else if (data.user_action === 'disliked') {
-                dislikeBtn.className = baseClass + " text-danger fw-bold"; // Kırmızı
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-</script>
+    @property
+    def is_expired(self):
+        if not self.date: return False
+        return timezone.now() > (self.date + timedelta(hours=self.duration))
 
-{% endblock %}
+    def __str__(self):
+        return f"{self.student} -> {self.tutor} ({self.skill.name})"
+
+# ---------------------------------------------------------
+# 6. REVIEWS & MESSAGES & NOTIFICATIONS
+# ---------------------------------------------------------
+
+class Review(models.Model):
+    session = models.OneToOneField(Session, on_delete=models.CASCADE, related_name='review')
+    rating = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)])
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Rating: {self.rating} for Session {self.session.id}"
+
+class Message(models.Model):
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
+    body = models.TextField(blank=True, null=True) # Metin boş olabilir
+    # --- Resim Alanı ---
+    image = models.ImageField(upload_to='message_images/', blank=True, null=True)
+    # -------------------
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"From {self.sender} to {self.recipient}"
+    
+class Notification(models.Model):
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    message = models.CharField(max_length=255)
+    link = models.CharField(max_length=200, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Notification for {self.recipient}: {self.message}"
+
+# ---------------------------------------------------------
+# 7. BLOG & COMMUNITY SYSTEM
+# ---------------------------------------------------------
+
+class BlogPost(models.Model):
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True, blank=True)
+    
+    # --- KATEGORİ ---
+    category = models.CharField(max_length=20, choices=BLOG_CATEGORY_CHOICES, default='general')
+    # ----------------
+
+    content = models.TextField()
+    image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='blog_likes', blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            import uuid
+            self.slug = slugify(self.title) + "-" + str(uuid.uuid4())[:8]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+class Comment(models.Model):
+    post = models.ForeignKey(BlogPost, related_name='comments', on_delete=models.CASCADE)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # --- YENİ EKLENEN: ALT YORUM (REPLY) ALANI ---
+    # parent=None ise bu bir ana yorumdur.
+    # parent dolu ise, o yorumun cevabıdır.
+    parent = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+    # ---------------------------------------------
+
+    # --- BEĞENİ SİSTEMİ ---
+    likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='comment_likes', blank=True)
+    dislikes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='comment_dislikes', blank=True)
+
+    def total_score(self):
+        return self.likes.count() - self.dislikes.count()
+
+    def __str__(self):
+        return f"Comment by {self.author} on {self.post.title}"

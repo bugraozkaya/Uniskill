@@ -19,7 +19,7 @@ CATEGORY_CHOICES = [
     ('other', 'Other'),
 ]
 
-# --- YENİ EKLENEN: BLOG KATEGORİLERİ ---
+# --- BLOG KATEGORİLERİ ---
 BLOG_CATEGORY_CHOICES = [
     ('general', 'General Discussion'),
     ('campus', 'Campus Life & Events'),
@@ -28,7 +28,7 @@ BLOG_CATEGORY_CHOICES = [
     ('career', 'Career & Internship'),
     ('social', 'Social & Fun'),
 ]
-# ---------------------------------------
+# -------------------------
 
 # ---------------------------------------------------------
 # 2. PROFILE MODEL (Extends User with Balance & Status)
@@ -179,7 +179,7 @@ class Notification(models.Model):
         return f"Notification for {self.recipient}: {self.message}"
 
 # ---------------------------------------------------------
-# 7. BLOG & COMMUNITY SYSTEM (YENİ EKLENEN)
+# 7. BLOG & COMMUNITY SYSTEM
 # ---------------------------------------------------------
 
 class BlogPost(models.Model):
@@ -187,9 +187,9 @@ class BlogPost(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True, blank=True)
     
-    # --- YENİ EKLENEN: KATEGORİ ALANI ---
+    # --- KATEGORİ ---
     category = models.CharField(max_length=20, choices=BLOG_CATEGORY_CHOICES, default='general')
-    # ------------------------------------
+    # ----------------
 
     content = models.TextField()
     image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
@@ -213,7 +213,13 @@ class Comment(models.Model):
     body = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     
-    # --- YENİ EKLENEN: BEĞENİ SİSTEMİ ---
+    # --- YENİ EKLENEN: ALT YORUM (REPLY) ALANI ---
+    # parent=None ise bu bir ana yorumdur.
+    # parent dolu ise, o yorumun cevabıdır.
+    parent = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+    # ---------------------------------------------
+
+    # --- BEĞENİ SİSTEMİ ---
     likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='comment_likes', blank=True)
     dislikes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='comment_dislikes', blank=True)
 
