@@ -1,3 +1,5 @@
+import json # <-- YENİ EKLENEN
+from datetime import timedelta # <-- YENİ EKLENEN
 import time
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -8,7 +10,7 @@ from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
 from django.core.cache import cache
 from django.utils.dateparse import parse_datetime
-from django.conf import settings # Ayarlardan mail bilgilerini almak için
+from django.conf import settings 
 
 # --- YENİ IMPORTLAR (MAİL VE AKTİVASYON İÇİN) ---
 from django.core.mail import send_mail, EmailMessage
@@ -254,27 +256,58 @@ def public_profile(request, user_id):
 # 2. DASHBOARD AND SESSION OPERATIONS
 # ---------------------------------------------------------
 
+# --- GÜNCELLENEN DASHBOARD (TAKVİM VERİSİ İLE) ---
 @login_required
 def dashboard(request):
     profile, created = Profile.objects.get_or_create(user=request.user)
     
+    # Tüm oturumları getir
     all_sessions = Session.objects.filter(
         Q(student=request.user) | Q(tutor=request.user)
     ).order_by('date')
 
     my_sessions = []
     past_sessions = []
+    
+    # --- TAKVİM İÇİN OLAY LİSTESİ (YENİ KISIM) ---
+    calendar_events = [] 
 
     for session in all_sessions:
+        # 1. Listeler için ayırma (Eski mantık)
         if session.status in ['cancelled', 'completed'] or session.is_expired:
             past_sessions.append(session)
         else:
             my_sessions.append(session)
+        
+        # 2. Takvim Verisi Hazırlama (JSON için)
+        if session.status != 'cancelled': # İptal edilenleri takvimde gösterme
+            
+            # Renk ve Başlık Belirleme
+            if request.user == session.student:
+                event_title = f"Learning: {session.skill.name}"
+                event_color = "#4f46e5" # Mavi (Primary)
+            else:
+                event_title = f"Teaching: {session.skill.name}"
+                event_color = "#10b981" # Yeşil (Success)
+
+            # Bitiş saati hesapla
+            end_time = session.date + timedelta(hours=session.duration)
+
+            calendar_events.append({
+                'title': event_title,
+                'start': session.date.isoformat(), # YYYY-MM-DDTHH:MM formatı
+                'end': end_time.isoformat(),
+                'backgroundColor': event_color,
+                'borderColor': event_color,
+                'url': f"/meeting/{session.id}/" if session.status == 'approved' else ""
+            })
+    # ---------------------------------------------
     
     past_sessions.reverse() 
 
     my_skills = UserSkill.objects.filter(user=request.user)
 
+    # Geçmiş oturumların puanlarını ayarla
     for session in past_sessions:
         review = Review.objects.filter(session=session).first()
         if review:
@@ -296,10 +329,13 @@ def dashboard(request):
         'my_skills': my_skills,
         'lessons_given_count': lessons_given_count,
         'my_rating': my_rating,
-        'received_reviews': received_reviews, 
+        'received_reviews': received_reviews,
+        # Veriyi JSON string'e çevirip gönderiyoruz
+        'calendar_events_json': json.dumps(calendar_events) 
     }
     
     return render(request, 'core/dashboard.html', context)
+# -------------------------------------------------
 
 @login_required
 def add_skill(request):

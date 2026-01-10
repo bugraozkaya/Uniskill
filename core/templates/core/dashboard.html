@@ -1,9 +1,12 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+
 <div class="row">
     <div class="col-lg-4 mb-4">
-        <div class="card h-100 border-0 text-center p-4 shadow-sm rounded-4">
+        
+        <div class="card border-0 text-center p-4 shadow-sm rounded-4 mb-4">
             <div class="card-body">
                 <div class="mb-4">
                     <div class="position-relative d-inline-block">
@@ -50,16 +53,54 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <script>
-    function copyCode() {
-        var copyText = document.getElementById("referralCode");
-        copyText.select();
-        document.execCommand("copy");
-        alert("Referral code copied!");
-    }
-    </script>
+        <script>
+        function copyCode() {
+            var copyText = document.getElementById("referralCode");
+            copyText.select();
+            document.execCommand("copy");
+            alert("Referral code copied!");
+        }
+        </script>
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark mb-0">Skills I Teach</h5>
+                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">{{ my_skills.count }}</span>
+            </div>
+            <div class="card-body px-4 pb-4">
+                {% if my_skills %}
+                    <div class="list-group list-group-flush">
+                        {% for item in my_skills %}
+                        <div class="list-group-item border-0 px-0 py-2 d-flex justify-content-between align-items-center border-bottom-0">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light text-primary rounded p-2 me-3">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">{{ item.skill.name }}</h6>
+                                    <small class="text-muted">{{ item.skill.get_category_display }}</small>
+                                </div>
+                            </div>
+                            
+                            {% if item.is_approved %}
+                                <i class="fas fa-check-circle text-success" title="Active"></i>
+                            {% else %}
+                                <i class="fas fa-clock text-warning" title="Pending"></i>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <p class="small">You haven't added any skills.</p>
+                        <a href="{% url 'add_skill' %}" class="btn btn-sm btn-outline-primary rounded-pill">Add Now</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
 
     <div class="col-lg-8">
         
@@ -145,10 +186,18 @@
             {% endif %}
         </div>
 
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-dark"><i class="far fa-calendar-alt me-2 text-primary"></i>Weekly Schedule</h5>
+            </div>
+            <div class="card-body p-4">
+                <div id='calendar'></div>
+            </div>
+        </div>
         <div class="card mb-4 border-0 shadow-sm rounded-4">
             <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
                 <h5 class="fw-bold text-dark mb-0">
-                    <i class="far fa-calendar-alt text-primary me-2"></i>Upcoming Sessions
+                    <i class="fas fa-list-ul text-primary me-2"></i>Upcoming Sessions List
                 </h5>
             </div>
             
@@ -282,46 +331,7 @@
                 </div>
             </div>
 
-            <div class="col-md-6">
-                <div class="card h-100 border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                        <h5 class="fw-bold text-dark mb-0">Skills I Teach</h5>
-                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">{{ my_skills.count }}</span>
-                    </div>
-                    <div class="card-body px-4 pb-4">
-                        {% if my_skills %}
-                            <div class="list-group list-group-flush">
-                                {% for item in my_skills %}
-                                <div class="list-group-item border-0 px-0 py-2 d-flex justify-content-between align-items-center border-bottom-0">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-light text-primary rounded p-2 me-3">
-                                            <i class="fas fa-chalkboard-teacher"></i>
-                                        </div>
-                                        <div>
-                                            <h6 class="mb-0 fw-bold text-dark">{{ item.skill.name }}</h6>
-                                            <small class="text-muted">{{ item.skill.get_category_display }}</small>
-                                        </div>
-                                    </div>
-                                    
-                                    {% if item.is_approved %}
-                                        <i class="fas fa-check-circle text-success" title="Active"></i>
-                                    {% else %}
-                                        <i class="fas fa-clock text-warning" title="Pending"></i>
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="text-center py-4 text-muted">
-                                <p class="small">You haven't added any skills.</p>
-                                <a href="{% url 'add_skill' %}" class="btn btn-sm btn-outline-primary rounded-pill">Add Now</a>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-12"> 
+            <div class="col-md-6"> 
                 <div class="card border-0 shadow-sm rounded-4 h-100">
                     <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                         <h5 class="fw-bold text-dark mb-0">
@@ -334,33 +344,30 @@
                     
                     <div class="card-body px-4 pb-4">
                         {% if received_reviews %}
-                            <div class="row g-3">
-                                {% for review in received_reviews %}
-                                <div class="col-md-6">
-                                    <div class="p-3 rounded-3 bg-light border-0 h-100">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <img src="{{ review.session.student.profile.avatar.url }}" class="rounded-circle shadow-sm me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                            
-                                            <div class="flex-grow-1 lh-1">
-                                                <span class="d-block fw-bold text-dark small">{{ review.session.student.first_name }}</span>
-                                                <small class="text-muted" style="font-size: 10px;">{{ review.created_at|date:"d M Y" }}</small>
-                                            </div>
+                            <div class="d-flex flex-column gap-3">
+                                {% for review in received_reviews|slice:":3" %} <div class="p-3 rounded-3 bg-light border-0">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <img src="{{ review.session.student.profile.avatar.url }}" class="rounded-circle shadow-sm me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                        
+                                        <div class="flex-grow-1 lh-1">
+                                            <span class="d-block fw-bold text-dark small">{{ review.session.student.first_name }}</span>
+                                            <small class="text-muted" style="font-size: 10px;">{{ review.created_at|date:"d M Y" }}</small>
+                                        </div>
 
-                                            <div class="text-warning small">
-                                                <i class="fas fa-star"></i>
-                                                <span class="fw-bold text-dark">{{ review.rating }}</span>
-                                            </div>
+                                        <div class="text-warning small">
+                                            <i class="fas fa-star"></i>
+                                            <span class="fw-bold text-dark">{{ review.rating }}</span>
                                         </div>
-                                        
-                                        <p class="mb-1 text-secondary small fst-italic border-start border-3 border-info ps-2 line-clamp-2">
-                                            "{{ review.comment }}"
-                                        </p>
-                                        
-                                        <div class="text-end">
-                                            <small class="text-muted bg-white px-2 py-1 rounded-pill border" style="font-size: 10px;">
-                                                <i class="fas fa-book-open me-1"></i>{{ review.session.skill.name }}
-                                            </small>
-                                        </div>
+                                    </div>
+                                    
+                                    <p class="mb-1 text-secondary small fst-italic border-start border-3 border-info ps-2 line-clamp-2">
+                                        "{{ review.comment }}"
+                                    </p>
+                                    
+                                    <div class="text-end">
+                                        <small class="text-muted bg-white px-2 py-1 rounded-pill border" style="font-size: 10px;">
+                                            <i class="fas fa-book-open me-1"></i>{{ review.session.skill.name }}
+                                        </small>
                                     </div>
                                 </div>
                                 {% endfor %}
@@ -388,5 +395,57 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
+    /* Takvim stil özelleştirmeleri */
+    .fc-event {
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 4px;
+        font-size: 0.85rem;
+    }
+    .fc-toolbar-title {
+        font-size: 1.1rem !important;
+        font-weight: bold;
+        color: #1e293b;
+    }
+    .fc-button-primary {
+        background-color: #4f46e5 !important;
+        border-color: #4f46e5 !important;
+        text-transform: capitalize;
+        font-weight: 500;
+    }
+    .fc-daygrid-day-number {
+        color: #64748b;
+        font-weight: 500;
+        text-decoration: none;
+    }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek'
+            },
+            height: 400,
+            events: {{ calendar_events_json|safe }},
+            
+            eventClick: function(info) {
+                if (info.event.url) {
+                    return true;
+                } else {
+                    info.jsEvent.preventDefault();
+                    // Link yoksa sadece bilgi ver (Örn: Onay bekleyen ders)
+                    return false;
+                }
+            }
+        });
+        calendar.render();
+    });
+</script>
+
 {% endblock %}
